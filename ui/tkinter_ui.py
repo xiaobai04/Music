@@ -26,6 +26,8 @@ class PlayerApp:
         self.music_files = []
         self.current_index = -1
         self.next_audio_data = None
+        self.prev_audio_data = None
+        self.current_audio_data = None
         self.session_id = None
 
         main_frame = tk.Frame(root)
@@ -119,8 +121,20 @@ class PlayerApp:
     def play_previous_song(self):
         if not self.music_files:
             return
-        self.current_index = (self.current_index - 1) % len(self.music_files)
-        threading.Thread(target=lambda: self.play_song(self.current_index), daemon=True).start()
+        prev_index = self.get_prev_index()
+        if prev_index is None:
+            return
+        # 将当前歌曲缓存为下一首，便于回到这首歌
+        next_cache = self.current_audio_data
+        self.current_index = prev_index
+        if self.prev_audio_data and self.prev_audio_data[0] == prev_index:
+            _, vocals, accomp, sr = self.prev_audio_data
+            threading.Thread(
+                target=lambda: self.play_song(prev_index, (vocals, accomp, sr), next_cache),
+                daemon=True
+            ).start()
+        else:
+            threading.Thread(target=lambda: self.play_song(prev_index, next_cache=next_cache), daemon=True).start()
 
     def play_next_song_manual(self):
         self.auto_next_enabled = False  # 禁止自动续播
@@ -138,7 +152,7 @@ class PlayerApp:
                 threading.Thread(target=lambda: self.play_song(next_index), daemon=True).start()
 
 
-    def play_song(self, index, preloaded=None):
+    def play_song(self, index, preloaded=None, next_cache=None):
         if not self.play_lock.acquire(blocking=False):
             return  # 正在播放时不重复执行
 
@@ -146,10 +160,14 @@ class PlayerApp:
             self.auto_next_enabled = True  # 默认启用自动续播
             self.session_id = str(uuid.uuid4())
             current_session = self.session_id
-            self.next_audio_data = None
+            self.next_audio_data = next_cache
+            old_data = self.current_audio_data
             if self.player:
                 self.player.stop()
                 self.player = None
+            if old_data:
+                self.prev_audio_data = old_data
+            self.current_audio_data = None
             self.current_index = index
 
             self.audio_path = self.music_files[index]
@@ -172,6 +190,8 @@ class PlayerApp:
             self.player = AudioPlayer(vocals, accomp, sr)
             self.player.play()
 
+            self.current_audio_data = (index, vocals, accomp, sr)
+
             lrc_path = os.path.splitext(self.audio_path)[0] + ".lrc"
             try:
                 lyrics = parse_lrc(lrc_path)
@@ -180,10 +200,12 @@ class PlayerApp:
                 self.lyrics_box.insert("end", "⚠️ 未找到歌词文件\n")
 
             self.progress_bar.config(state=tk.NORMAL)
+            self.progress_var.set(0)
             if not self.update_loop_running:
                 threading.Thread(target=self.update_progress_loop, daemon=True).start()
 
             threading.Thread(target=lambda: self.preload_next_song(current_session), daemon=True).start()
+            threading.Thread(target=lambda: self.preload_prev_song(current_session), daemon=True).start()
             threading.Thread(target=lambda: self.monitor_and_play_next(current_session), daemon=True).start()
 
         except Exception as e:
@@ -206,6 +228,19 @@ class PlayerApp:
         except:
             self.next_audio_data = None
 
+    def preload_prev_song(self, session_id):
+        prev_index = self.get_prev_index()
+        if prev_index is None or session_id != self.session_id:
+            return
+        prev_path = self.music_files[prev_index]
+        try:
+            device = self.device_choice.get()
+            vocals, accomp, sr = separate_audio_in_memory(prev_path, device=device)
+            if session_id == self.session_id:
+                self.prev_audio_data = (prev_index, vocals, accomp, sr)
+        except:
+            self.prev_audio_data = None
+
     def monitor_and_play_next(self, session_id):
         while self.player and self.player.playing and session_id == self.session_id:
             time.sleep(0.5)
@@ -217,6 +252,8 @@ class PlayerApp:
         if self.next_audio_data:
             index, vocals, accomp, sr = self.next_audio_data
             self.next_audio_data = None
+            if self.current_audio_data:
+                self.prev_audio_data = self.current_audio_data
             self.current_index = index
             self.audio_path = self.music_files[index]
             self.current_file_label.config(text=f"当前播放：{os.path.basename(self.audio_path)}")
@@ -228,6 +265,7 @@ class PlayerApp:
 
             self.player = AudioPlayer(vocals, accomp, sr)
             self.player.play()
+            self.current_audio_data = (index, vocals, accomp, sr)
 
             lrc_path = os.path.splitext(self.audio_path)[0] + ".lrc"
             try:
@@ -236,10 +274,13 @@ class PlayerApp:
             except:
                 self.lyrics_box.insert("end", "⚠️ 无歌词\n")
 
+            self.progress_bar.config(state=tk.NORMAL)
+            self.progress_var.set(0)
             if not self.update_loop_running:
                 threading.Thread(target=self.update_progress_loop, daemon=True).start()
 
             threading.Thread(target=lambda: self.preload_next_song(self.session_id), daemon=True).start()
+            threading.Thread(target=lambda: self.preload_prev_song(self.session_id), daemon=True).start()
 
 
     def get_next_index(self):
@@ -255,6 +296,20 @@ class PlayerApp:
             if len(candidates) > 1:
                 candidates.remove(self.current_index)
             return random.choice(candidates)
+        return None
+
+    def get_prev_index(self):
+        if not self.music_files:
+            return None
+        mode = self.play_mode.get()
+        if mode == "顺序":
+            return self.current_index - 1 if self.current_index > 0 else None
+        elif mode == "循环":
+            return (self.current_index - 1) % len(self.music_files)
+        elif mode == "随机":
+            if self.prev_audio_data:
+                return self.prev_audio_data[0]
+            return None
         return None
 
     def toggle_pause(self):
