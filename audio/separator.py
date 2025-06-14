@@ -6,6 +6,18 @@ import torchaudio
 from demucs.pretrained import get_model
 from demucs.apply import apply_model
 
+_MODEL_CACHE = {}
+
+
+def _get_model(device: str):
+    """Load Demucs model once per device."""
+    model = _MODEL_CACHE.get(device)
+    if model is None:
+        model = get_model(name="htdemucs").to(device)
+        model.eval()
+        _MODEL_CACHE[device] = model
+    return model
+
 
 def separate_audio_in_memory(audio_path, device):
     """
@@ -21,9 +33,8 @@ def separate_audio_in_memory(audio_path, device):
 
     wav = wav.to(torch.float32).to(device)
 
-    # 加载模型
-    model = get_model(name="htdemucs").to(device)
-    model.eval()
+    # 加载模型（仅首次加载）
+    model = _get_model(device)
 
     with torch.no_grad():
         sources = apply_model(
@@ -32,7 +43,7 @@ def separate_audio_in_memory(audio_path, device):
             device=device,
             split=True,
             overlap=0.25,
-            progress=True
+            progress=False
         )[0]  # 去掉 batch
 
     vocals = sources[model.sources.index("vocals")]
