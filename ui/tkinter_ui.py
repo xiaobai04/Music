@@ -26,6 +26,7 @@ class PlayerApp:
         settings = load_settings()
         self.device_choice = tk.StringVar(value=settings.get("device", "cuda"))
         self.play_mode = tk.StringVar(value=settings.get("play_mode", "顺序"))
+        self.music_folder = settings.get("music_folder", "")
         self.update_loop_running = False
         self.music_files = []
         self.all_music_files = []
@@ -58,6 +59,9 @@ class PlayerApp:
         self.file_listbox = tk.Listbox(left_frame, height=30, font=("Microsoft YaHei", 11), width=50)
         self.file_listbox.pack()
         self.file_listbox.bind("<Double-Button-1>", self.on_song_double_click)
+
+        if self.music_folder and os.path.isdir(self.music_folder):
+            self.load_folder(self.music_folder)
 
         # 右侧控制面板
         right_frame = tk.Frame(main_frame)
@@ -121,12 +125,17 @@ class PlayerApp:
     def choose_folder(self):
         folder = filedialog.askdirectory()
         if folder:
-            self.all_music_files = [os.path.join(folder, f) for f in os.listdir(folder)
-                                   if f.lower().endswith((".mp3", ".flac"))]
-            self.all_music_files.sort()
-            self.search_var.set("")
-            self.music_files = list(self.all_music_files)
-            self.refresh_file_listbox()
+            self.load_folder(folder)
+            self.persist_settings()
+
+    def load_folder(self, folder):
+        self.music_folder = folder
+        self.all_music_files = [os.path.join(folder, f) for f in os.listdir(folder)
+                               if f.lower().endswith((".mp3", ".flac"))]
+        self.all_music_files.sort()
+        self.search_var.set("")
+        self.music_files = list(self.all_music_files)
+        self.refresh_file_listbox()
 
     def refresh_file_listbox(self):
         self.file_listbox.delete(0, tk.END)
@@ -392,6 +401,7 @@ class PlayerApp:
         settings = {
             "device": self.device_choice.get(),
             "play_mode": self.play_mode.get(),
+            "music_folder": self.music_folder,
         }
         save_settings(settings)
 
