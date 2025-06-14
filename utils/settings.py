@@ -5,7 +5,8 @@ SETTINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '
 
 DEFAULT_SETTINGS = {
     "device": "cuda",
-    "play_mode": "顺序"
+    "play_mode": "顺序",
+    "last_folder": ""
 }
 
 def load_settings():

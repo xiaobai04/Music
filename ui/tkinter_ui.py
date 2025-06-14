@@ -26,6 +26,7 @@ class PlayerApp:
         settings = load_settings()
         self.device_choice = tk.StringVar(value=settings.get("device", "cuda"))
         self.play_mode = tk.StringVar(value=settings.get("play_mode", "顺序"))
+        self.last_folder = settings.get("last_folder", "")
         self.update_loop_running = False
         self.music_files = []
         self.current_index = -1
@@ -107,17 +108,25 @@ class PlayerApp:
         self.play_lock = threading.Lock()  # 防止重复播放
         self.auto_next_enabled = True      # 控制是否启用自动播放下一首
 
+        if self.last_folder and os.path.isdir(self.last_folder):
+            self.load_folder(self.last_folder)
+
 
 
     def choose_folder(self):
-        folder = filedialog.askdirectory()
+        folder = filedialog.askdirectory(initialdir=self.last_folder or os.getcwd())
         if folder:
-            self.music_files = [os.path.join(folder, f) for f in os.listdir(folder)
-                                if f.lower().endswith(('.mp3', '.flac'))]
-            self.music_files.sort()
-            self.file_listbox.delete(0, tk.END)
-            for f in self.music_files:
-                self.file_listbox.insert(tk.END, os.path.basename(f))
+            self.load_folder(folder)
+            self.persist_settings()
+
+    def load_folder(self, folder):
+        self.music_files = [os.path.join(folder, f) for f in os.listdir(folder)
+                            if f.lower().endswith(('.mp3', '.flac'))]
+        self.music_files.sort()
+        self.file_listbox.delete(0, tk.END)
+        for f in self.music_files:
+            self.file_listbox.insert(tk.END, os.path.basename(f))
+        self.last_folder = folder
 
     def on_song_double_click(self, event):
         index = self.file_listbox.curselection()
@@ -370,6 +379,7 @@ class PlayerApp:
         settings = {
             "device": self.device_choice.get(),
             "play_mode": self.play_mode.get(),
+            "last_folder": self.last_folder,
         }
         save_settings(settings)
 
