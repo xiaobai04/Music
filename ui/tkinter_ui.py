@@ -124,16 +124,17 @@ class PlayerApp:
         prev_index = self.get_prev_index()
         if prev_index is None:
             return
+        # 将当前歌曲缓存为下一首，便于回到这首歌
+        next_cache = self.current_audio_data
         self.current_index = prev_index
         if self.prev_audio_data and self.prev_audio_data[0] == prev_index:
             _, vocals, accomp, sr = self.prev_audio_data
-            self.prev_audio_data = None
             threading.Thread(
-                target=lambda: self.play_song(prev_index, (vocals, accomp, sr)),
+                target=lambda: self.play_song(prev_index, (vocals, accomp, sr), next_cache),
                 daemon=True
             ).start()
         else:
-            threading.Thread(target=lambda: self.play_song(prev_index), daemon=True).start()
+            threading.Thread(target=lambda: self.play_song(prev_index, next_cache=next_cache), daemon=True).start()
 
     def play_next_song_manual(self):
         self.auto_next_enabled = False  # 禁止自动续播
@@ -151,7 +152,7 @@ class PlayerApp:
                 threading.Thread(target=lambda: self.play_song(next_index), daemon=True).start()
 
 
-    def play_song(self, index, preloaded=None):
+    def play_song(self, index, preloaded=None, next_cache=None):
         if not self.play_lock.acquire(blocking=False):
             return  # 正在播放时不重复执行
 
@@ -159,7 +160,7 @@ class PlayerApp:
             self.auto_next_enabled = True  # 默认启用自动续播
             self.session_id = str(uuid.uuid4())
             current_session = self.session_id
-            self.next_audio_data = None
+            self.next_audio_data = next_cache
             old_data = self.current_audio_data
             if self.player:
                 self.player.stop()
