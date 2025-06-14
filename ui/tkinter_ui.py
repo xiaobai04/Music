@@ -302,6 +302,8 @@ class PlayerApp:
         elif mode == "循环":
             return (self.current_index + 1) % len(self.music_files)
         elif mode == "随机":
+            if self.next_audio_data:
+                return self.next_audio_data[0]
             candidates = list(range(len(self.music_files)))
             if len(candidates) > 1:
                 candidates.remove(self.current_index)
