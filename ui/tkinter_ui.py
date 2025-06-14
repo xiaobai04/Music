@@ -127,10 +127,18 @@ class PlayerApp:
         next_index = self.get_next_index()
         if next_index is not None:
             self.current_index = next_index
-            threading.Thread(target=lambda: self.play_song(next_index), daemon=True).start()
+            if self.next_audio_data and self.next_audio_data[0] == next_index:
+                _, vocals, accomp, sr = self.next_audio_data
+                self.next_audio_data = None
+                threading.Thread(
+                    target=lambda: self.play_song(next_index, (vocals, accomp, sr)),
+                    daemon=True
+                ).start()
+            else:
+                threading.Thread(target=lambda: self.play_song(next_index), daemon=True).start()
 
 
-    def play_song(self, index):
+    def play_song(self, index, preloaded=None):
         if not self.play_lock.acquire(blocking=False):
             return  # 正在播放时不重复执行
 
@@ -142,22 +150,27 @@ class PlayerApp:
             if self.player:
                 self.player.stop()
                 self.player = None
+            self.current_index = index
 
             self.audio_path = self.music_files[index]
             song_name = os.path.basename(self.audio_path)
             self.current_file_label.config(text=f"当前播放：{song_name}")
             self.lyrics_box.delete("1.0", "end")
-            self.lyrics_box.insert("end", "🎶 正在分离人声...\n")
             self.pause_button.config(state=tk.NORMAL)
 
-            device = self.device_choice.get()
-            vocals, accomp, sr = separate_audio_in_memory(self.audio_path, device=device)
-            if self.session_id != current_session:
-                return
+            if preloaded:
+                vocals, accomp, sr = preloaded
+                self.lyrics_box.insert("end", "✅ 使用缓存播放\n")
+            else:
+                self.lyrics_box.insert("end", "🎶 正在分离人声...\n")
+                device = self.device_choice.get()
+                vocals, accomp, sr = separate_audio_in_memory(self.audio_path, device=device)
+                if self.session_id != current_session:
+                    return
+                self.lyrics_box.insert("end", "✅ 分离完成，开始播放\n")
 
             self.player = AudioPlayer(vocals, accomp, sr)
             self.player.play()
-            self.lyrics_box.insert("end", "✅ 分离完成，开始播放\n")
 
             lrc_path = os.path.splitext(self.audio_path)[0] + ".lrc"
             try:
