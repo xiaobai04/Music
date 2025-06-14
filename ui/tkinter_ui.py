@@ -6,6 +6,8 @@ import os
 import random
 import uuid
 
+from utils.settings import load_settings, save_settings
+
 from audio.separator import separate_audio_in_memory
 from audio.player import AudioPlayer
 from lyrics.lrc_parser import parse_lrc
@@ -20,8 +22,10 @@ class PlayerApp:
 
         self.audio_path = None
         self.player = None
-        self.device_choice = tk.StringVar(value="cuda")
-        self.play_mode = tk.StringVar(value="顺序")
+
+        settings = load_settings()
+        self.device_choice = tk.StringVar(value=settings.get("device", "cuda"))
+        self.play_mode = tk.StringVar(value=settings.get("play_mode", "顺序"))
         self.update_loop_running = False
         self.music_files = []
         self.current_index = -1
@@ -32,6 +36,8 @@ class PlayerApp:
 
         main_frame = tk.Frame(root)
         main_frame.pack(fill="both", expand=True)
+
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
         # 左侧文件列表
         left_frame = tk.Frame(main_frame)
@@ -57,6 +63,10 @@ class PlayerApp:
         tk.OptionMenu(top_options, self.device_choice, "cpu", "cuda").pack(side=tk.LEFT, padx=5)
         tk.Label(top_options, text="播放模式：", font=("Microsoft YaHei", 11)).pack(side=tk.LEFT, padx=(20, 0))
         tk.OptionMenu(top_options, self.play_mode, "顺序", "循环", "随机").pack(side=tk.LEFT)
+
+        # 当选项变化时保存设置
+        self.device_choice.trace_add("write", lambda *args: self.persist_settings())
+        self.play_mode.trace_add("write", lambda *args: self.persist_settings())
 
         control_frame = tk.Frame(right_frame)
         control_frame.pack(pady=5)
@@ -355,3 +365,16 @@ class PlayerApp:
     def format_time(self, seconds):
         m, s = divmod(int(seconds), 60)
         return f"{m:02d}:{s:02d}"
+
+    def persist_settings(self):
+        settings = {
+            "device": self.device_choice.get(),
+            "play_mode": self.play_mode.get(),
+        }
+        save_settings(settings)
+
+    def on_close(self):
+        self.persist_settings()
+        if self.player:
+            self.player.stop()
+        self.root.destroy()
