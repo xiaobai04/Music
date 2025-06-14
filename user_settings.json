@@ -1,4 +1,5 @@
 {
   "device": "cuda",
-  "play_mode": "顺序"
-}
+  "play_mode": "顺序",
+  "music_folder": ""
+ }

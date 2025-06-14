@@ -19,7 +19,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-程序会在当前目录生成 `user_settings.json` 保存播放模式等用户设置。
+程序会在当前目录生成 `user_settings.json` 保存播放模式以及最近打开的音乐文件夹等设置。重新启动时会自动加载该文件夹。
 
 ## 打包
 
