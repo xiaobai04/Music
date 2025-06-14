@@ -1,4 +1,0 @@
-spleeter
-pydub
-pygame
-librosa
