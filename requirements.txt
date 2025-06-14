@@ -1,6 +1,4 @@
-torch
-torchaudio
-demucs
-sounddevice
+spleeter
+pydub
+pygame
 librosa
-soundfile

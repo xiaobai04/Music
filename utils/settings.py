@@ -1,9 +1,7 @@
 import json
 import os
-import sys
 
-BASE_DIR = getattr(sys, '_MEIPASS', os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-SETTINGS_FILE = os.path.join(BASE_DIR, 'user_settings.json')
+SETTINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'user_settings.json')
 
 DEFAULT_SETTINGS = {
     "device": "cuda",
