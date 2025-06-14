@@ -28,6 +28,7 @@ class PlayerApp:
         self.play_mode = tk.StringVar(value=settings.get("play_mode", "顺序"))
         self.update_loop_running = False
         self.music_files = []
+        self.all_music_files = []
         self.current_index = -1
         self.next_audio_data = None
         self.prev_audio_data = None
@@ -45,6 +46,14 @@ class PlayerApp:
 
         tk.Button(left_frame, text="选择音乐文件夹", command=self.choose_folder,
                   font=("Microsoft YaHei", 11, "bold")).pack(pady=5)
+
+        search_frame = tk.Frame(left_frame)
+        search_frame.pack(pady=5)
+        self.search_var = tk.StringVar()
+        tk.Entry(search_frame, textvariable=self.search_var,
+                 font=("Microsoft YaHei", 11), width=30).pack(side=tk.LEFT)
+        tk.Button(search_frame, text="搜索", command=self.search_songs,
+                  font=("Microsoft YaHei", 10)).pack(side=tk.LEFT, padx=5)
 
         self.file_listbox = tk.Listbox(left_frame, height=30, font=("Microsoft YaHei", 11), width=50)
         self.file_listbox.pack()
@@ -112,12 +121,25 @@ class PlayerApp:
     def choose_folder(self):
         folder = filedialog.askdirectory()
         if folder:
-            self.music_files = [os.path.join(folder, f) for f in os.listdir(folder)
-                                if f.lower().endswith(('.mp3', '.flac'))]
-            self.music_files.sort()
-            self.file_listbox.delete(0, tk.END)
-            for f in self.music_files:
-                self.file_listbox.insert(tk.END, os.path.basename(f))
+            self.all_music_files = [os.path.join(folder, f) for f in os.listdir(folder)
+                                   if f.lower().endswith((".mp3", ".flac"))]
+            self.all_music_files.sort()
+            self.search_var.set("")
+            self.music_files = list(self.all_music_files)
+            self.refresh_file_listbox()
+
+    def refresh_file_listbox(self):
+        self.file_listbox.delete(0, tk.END)
+        for f in self.music_files:
+            self.file_listbox.insert(tk.END, os.path.basename(f))
+
+    def search_songs(self):
+        query = self.search_var.get().lower()
+        if not query:
+            self.music_files = list(self.all_music_files)
+        else:
+            self.music_files = [f for f in self.all_music_files if query in os.path.basename(f).lower()]
+        self.refresh_file_listbox()
 
     def on_song_double_click(self, event):
         index = self.file_listbox.curselection()
