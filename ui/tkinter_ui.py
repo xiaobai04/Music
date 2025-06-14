@@ -218,6 +218,12 @@ class PlayerApp:
         next_index = self.get_next_index()
         if next_index is None or session_id != self.session_id:
             return
+        # 如果上一首就是接下来的歌曲，直接复用缓存
+        if self.prev_audio_data and self.prev_audio_data[0] == next_index:
+            self.next_audio_data = self.prev_audio_data
+            return
+        if self.next_audio_data and self.next_audio_data[0] == next_index:
+            return
         next_path = self.music_files[next_index]
         try:
             device = self.device_choice.get()
@@ -230,6 +236,11 @@ class PlayerApp:
     def preload_prev_song(self, session_id):
         prev_index = self.get_prev_index()
         if prev_index is None or session_id != self.session_id:
+            return
+        if self.prev_audio_data and self.prev_audio_data[0] == prev_index:
+            return
+        if self.next_audio_data and self.next_audio_data[0] == prev_index:
+            self.prev_audio_data = self.next_audio_data
             return
         prev_path = self.music_files[prev_index]
         try:
