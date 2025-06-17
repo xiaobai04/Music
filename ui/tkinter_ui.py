@@ -7,6 +7,8 @@ import random
 import uuid
 import platform
 import sounddevice as sd
+import torch
+import torchaudio
 
 from utils.settings import load_settings, save_settings
 from utils.audio_utils import resample_audio
@@ -211,6 +213,13 @@ class PlayerApp:
 
         self.time_label = tk.Label(right_frame, text="00:00 / 00:00", font=("Courier", 12, "bold"))
         self.time_label.pack()
+
+        export_frame = tk.Frame(right_frame)
+        export_frame.pack(pady=5)
+        tk.Button(export_frame, text="导出人声", command=self.export_vocals,
+                  font=("Microsoft YaHei", 10)).pack(side=tk.LEFT, padx=5)
+        tk.Button(export_frame, text="导出伴奏", command=self.export_accompaniment,
+                  font=("Microsoft YaHei", 10)).pack(side=tk.LEFT, padx=5)
 
         self.lyrics_box = tk.Text(right_frame, font=("Microsoft YaHei", 14))
         self.lyrics_box.pack(fill="both", expand=True, pady=5)
@@ -575,6 +584,44 @@ class PlayerApp:
     def format_time(self, seconds):
         m, s = divmod(int(seconds), 60)
         return f"{m:02d}:{s:02d}"
+
+    def export_vocals(self):
+        if not self.current_audio_data:
+            messagebox.showwarning("未播放", "请先播放歌曲再导出")
+            return
+        _, vocals, _, sr = self.current_audio_data
+        base = os.path.splitext(os.path.basename(self.audio_path))[0]
+        default_name = f"{base} - 人声.wav"
+        path = filedialog.asksaveasfilename(defaultextension=".wav",
+                                            filetypes=[("WAV 文件", "*.wav")],
+                                            initialfile=default_name)
+        if not path:
+            return
+        threading.Thread(target=self.save_audio_file, args=(path, vocals, sr),
+                         daemon=True).start()
+
+    def export_accompaniment(self):
+        if not self.current_audio_data:
+            messagebox.showwarning("未播放", "请先播放歌曲再导出")
+            return
+        _, _, accomp, sr = self.current_audio_data
+        base = os.path.splitext(os.path.basename(self.audio_path))[0]
+        default_name = f"{base} - 伴奏.wav"
+        path = filedialog.asksaveasfilename(defaultextension=".wav",
+                                            filetypes=[("WAV 文件", "*.wav")],
+                                            initialfile=default_name)
+        if not path:
+            return
+        threading.Thread(target=self.save_audio_file, args=(path, accomp, sr),
+                         daemon=True).start()
+
+    def save_audio_file(self, path, data, sr):
+        try:
+            tensor = torch.from_numpy(data.T)
+            torchaudio.save(path, tensor, sr)
+            self.lyrics_box.insert("end", f"✅ 已导出：{os.path.basename(path)}\n")
+        except Exception as e:
+            messagebox.showerror("导出错误", str(e))
 
     def get_selected_mic_index(self):
         """Return the sounddevice index for the selected microphone."""
