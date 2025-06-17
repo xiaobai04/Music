@@ -5,7 +5,7 @@ import threading
 import collections
 
 class AudioPlayer:
-    def __init__(self, vocals, accomp, sample_rate, mic_device=None, mic_enabled=False, latency=0.05):
+    def __init__(self, vocals, accomp, sample_rate, output_device=None, mic_device=None, mic_enabled=False, latency=0.05):
         self.vocals = vocals
         self.accomp = accomp
         self.sample_rate = sample_rate
@@ -22,6 +22,7 @@ class AudioPlayer:
         self.mic_stream = None
         self.mic_queue = collections.deque()
         self.mic_channels = self.channels
+        self.output_device = output_device
         self.mic_device = mic_device
         self.mic_enabled = mic_enabled
         self.latency = latency
@@ -82,7 +83,8 @@ class AudioPlayer:
             blocksize=self.blocksize,
             dtype='float32',
             callback=self._callback,
-            latency=self.latency
+            latency=self.latency,
+            device=self.output_device
         )
         self.stream.start()
 

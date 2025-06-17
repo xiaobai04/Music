@@ -8,6 +8,7 @@ import uuid
 import sounddevice as sd
 
 from utils.settings import load_settings, save_settings
+from utils.audio_utils import resample_audio
 
 from audio.separator import separate_audio_in_memory
 from audio.player import AudioPlayer
@@ -28,6 +29,8 @@ class PlayerApp:
         self.device_choice = tk.StringVar(value=settings.get("device", "cuda"))
         self.play_mode = tk.StringVar(value=settings.get("play_mode", "顺序"))
         self.music_folder = settings.get("music_folder", "")
+        self.output_device = tk.StringVar(value=settings.get("output_device", "默认"))
+        self.output_device_map = {}
         self.mic_device = tk.StringVar(value=settings.get("mic_device", "无"))
         self.input_device_map = {}
         self.mic_volume = tk.DoubleVar(value=settings.get("mic_volume", 1.0))
@@ -84,11 +87,30 @@ class PlayerApp:
         tk.Label(top_options, text="播放模式：", font=("Microsoft YaHei", 11)).pack(side=tk.LEFT, padx=(20, 0))
         tk.OptionMenu(top_options, self.play_mode, "顺序", "循环", "随机").pack(side=tk.LEFT)
 
+        # 设备列表
+        all_devices = list(enumerate(sd.query_devices()))
+        hostapis = sd.query_hostapis()
+
+        # 输出设备
+        output_devs = []
+        self.output_device_map.clear()
+        for i, dev in all_devices:
+            if dev['max_output_channels'] > 0:
+                label = f"{i}: {dev['name']} ({hostapis[dev['hostapi']]['name']})"
+                output_devs.append(label)
+                self.output_device_map[label] = i
+        if not output_devs:
+            output_devs = ["默认"]
+            self.output_device_map["默认"] = None
+        if self.output_device.get() not in output_devs:
+            self.output_device.set("默认")
+        tk.Label(top_options, text="输出设备：", font=("Microsoft YaHei", 11)).pack(side=tk.LEFT, padx=(20,0))
+        tk.OptionMenu(top_options, self.output_device, *output_devs).pack(side=tk.LEFT)
+
         # 麦克风设备选择，显示索引和 Host API，避免名称重复
-        devices = [(i, d) for i, d in enumerate(sd.query_devices()) if d['max_input_channels'] > 0]
+        devices = [(i, d) for i, d in all_devices if d['max_input_channels'] > 0]
         input_devs = []
         self.input_device_map.clear()
-        hostapis = sd.query_hostapis()
         for i, dev in devices:
             label = f"{i}: {dev['name']} ({hostapis[dev['hostapi']]['name']})"
             input_devs.append(label)
@@ -109,6 +131,7 @@ class PlayerApp:
         # 当选项变化时保存设置
         self.device_choice.trace_add("write", lambda *args: self.persist_settings())
         self.play_mode.trace_add("write", lambda *args: self.persist_settings())
+        self.output_device.trace_add("write", lambda *args: self.persist_settings())
         self.mic_device.trace_add("write", lambda *args: self.on_mic_device_change())
         self.mic_volume.trace_add("write", lambda *args: self.change_mic_volume())
         self.mic_enabled.trace_add("write", lambda *args: self.toggle_mic())
@@ -260,7 +283,17 @@ class PlayerApp:
                 self.lyrics_box.insert("end", "✅ 分离完成，开始播放\n")
 
             mic_dev = None if not self.mic_enabled.get() else self.get_selected_mic_index()
-            self.player = AudioPlayer(vocals, accomp, sr, mic_device=mic_dev, mic_enabled=self.mic_enabled.get(), latency=0.03)
+            out_dev = self.get_selected_output_index()
+            try:
+                dev_info = sd.query_devices(out_dev, 'output') if out_dev is not None else sd.query_devices(None, 'output')
+                target_sr = int(dev_info['default_samplerate'])
+            except Exception:
+                target_sr = sr
+            if sr != target_sr:
+                vocals = resample_audio(vocals, sr, target_sr)
+                accomp = resample_audio(accomp, sr, target_sr)
+                sr = target_sr
+            self.player = AudioPlayer(vocals, accomp, sr, output_device=out_dev, mic_device=mic_dev, mic_enabled=self.mic_enabled.get(), latency=0.03)
             self.player.set_mic_volume(self.mic_volume.get())
             self.player.play()
 
@@ -349,7 +382,17 @@ class PlayerApp:
                 self.player.stop()
 
             mic_dev = None if not self.mic_enabled.get() else self.get_selected_mic_index()
-            self.player = AudioPlayer(vocals, accomp, sr, mic_device=mic_dev, mic_enabled=self.mic_enabled.get(), latency=0.03)
+            out_dev = self.get_selected_output_index()
+            try:
+                dev_info = sd.query_devices(out_dev, 'output') if out_dev is not None else sd.query_devices(None, 'output')
+                target_sr = int(dev_info['default_samplerate'])
+            except Exception:
+                target_sr = sr
+            if sr != target_sr:
+                vocals = resample_audio(vocals, sr, target_sr)
+                accomp = resample_audio(accomp, sr, target_sr)
+                sr = target_sr
+            self.player = AudioPlayer(vocals, accomp, sr, output_device=out_dev, mic_device=mic_dev, mic_enabled=self.mic_enabled.get(), latency=0.03)
             self.player.set_mic_volume(self.mic_volume.get())
             self.player.play()
             self.current_audio_data = (index, vocals, accomp, sr)
@@ -458,11 +501,16 @@ class PlayerApp:
         """Return the sounddevice index for the selected microphone."""
         return self.input_device_map.get(self.mic_device.get())
 
+    def get_selected_output_index(self):
+        """Return the sounddevice index for the selected output device."""
+        return self.output_device_map.get(self.output_device.get())
+
     def persist_settings(self):
         settings = {
             "device": self.device_choice.get(),
             "play_mode": self.play_mode.get(),
             "music_folder": self.music_folder,
+            "output_device": self.output_device.get(),
             "mic_device": self.mic_device.get(),
             "mic_volume": self.mic_volume.get(),
             "mic_enabled": self.mic_enabled.get(),
