@@ -59,6 +59,8 @@ class PlayerApp:
         self.mic_device = tk.StringVar(value=settings.get("mic_device", "无"))
         self.input_device_map = {}
         self.mic_volume = tk.DoubleVar(value=settings.get("mic_volume", 1.0))
+        self.vocal_volume = tk.DoubleVar(value=settings.get("vocal_volume", 1.0))
+        self.accomp_volume = tk.DoubleVar(value=settings.get("accomp_volume", 1.0))
         self.mic_enabled = tk.BooleanVar(value=settings.get("mic_enabled", False))
         self.update_loop_running = False
         self.dragging = False
@@ -106,18 +108,20 @@ class PlayerApp:
         self.current_file_label = tk.Label(right_frame, text="当前播放：", font=("Microsoft YaHei", 12, "bold"))
         self.current_file_label.pack(pady=5)
 
-        top_options = tk.Frame(right_frame)
-        top_options.pack()
-        tk.Label(top_options, text="分离方式：", font=("Microsoft YaHei", 11)).pack(side=tk.LEFT)
-        tk.OptionMenu(top_options, self.device_choice, "cpu", "cuda").pack(side=tk.LEFT, padx=5)
-        tk.Label(top_options, text="播放模式：", font=("Microsoft YaHei", 11)).pack(side=tk.LEFT, padx=(20, 0))
-        tk.OptionMenu(top_options, self.play_mode, "顺序", "循环", "随机").pack(side=tk.LEFT)
+        row1 = tk.Frame(right_frame)
+        row1.pack()
+        tk.Label(row1, text="分离方式：", font=("Microsoft YaHei", 11)).pack(side=tk.LEFT)
+        tk.OptionMenu(row1, self.device_choice, "cpu", "cuda").pack(side=tk.LEFT, padx=5)
+        tk.Label(row1, text="播放模式：", font=("Microsoft YaHei", 11)).pack(side=tk.LEFT, padx=(20, 0))
+        tk.OptionMenu(row1, self.play_mode, "顺序", "循环", "随机").pack(side=tk.LEFT)
 
         # 设备列表
         all_devices = list(enumerate(sd.query_devices()))
         hostapis = sd.query_hostapis()
 
         # 输出设备
+        row2 = tk.Frame(right_frame)
+        row2.pack()
         output_devs = []
         self.output_device_map.clear()
         for i, dev in all_devices:
@@ -130,8 +134,8 @@ class PlayerApp:
             self.output_device_map["默认"] = None
         if self.output_device.get() not in output_devs:
             self.output_device.set("默认")
-        tk.Label(top_options, text="输出设备：", font=("Microsoft YaHei", 11)).pack(side=tk.LEFT, padx=(20,0))
-        tk.OptionMenu(top_options, self.output_device, *output_devs).pack(side=tk.LEFT)
+        tk.Label(row2, text="输出设备：", font=("Microsoft YaHei", 11)).pack(side=tk.LEFT)
+        tk.OptionMenu(row2, self.output_device, *output_devs).pack(side=tk.LEFT, padx=5)
 
         # 麦克风设备选择，显示索引和 Host API，避免名称重复
         devices = [(i, d) for i, d in all_devices if d['max_input_channels'] > 0]
@@ -146,11 +150,13 @@ class PlayerApp:
             self.input_device_map["无"] = None
         if self.mic_device.get() not in input_devs:
             self.mic_device.set("无")
-        tk.Label(top_options, text="麦克风：", font=("Microsoft YaHei", 11)).pack(side=tk.LEFT, padx=(20,0))
-        tk.OptionMenu(top_options, self.mic_device, *input_devs).pack(side=tk.LEFT)
-        tk.Checkbutton(top_options, text="启用麦克风", variable=self.mic_enabled,
+        row3 = tk.Frame(right_frame)
+        row3.pack()
+        tk.Label(row3, text="麦克风：", font=("Microsoft YaHei", 11)).pack(side=tk.LEFT)
+        tk.OptionMenu(row3, self.mic_device, *input_devs).pack(side=tk.LEFT, padx=5)
+        tk.Checkbutton(row3, text="启用麦克风", variable=self.mic_enabled,
                        font=("Microsoft YaHei", 10)).pack(side=tk.LEFT, padx=5)
-        tk.Scale(top_options, from_=0, to=1, resolution=0.01, orient=tk.HORIZONTAL,
+        tk.Scale(row3, from_=0, to=1, resolution=0.01, orient=tk.HORIZONTAL,
                  variable=self.mic_volume, label="麦克风音量", length=120,
                  font=("Microsoft YaHei", 10)).pack(side=tk.LEFT, padx=5)
 
@@ -161,6 +167,8 @@ class PlayerApp:
         self.mic_device.trace_add("write", lambda *args: self.on_mic_device_change())
         self.mic_volume.trace_add("write", lambda *args: self.change_mic_volume())
         self.mic_enabled.trace_add("write", lambda *args: self.toggle_mic())
+        self.vocal_volume.trace_add("write", lambda *args: self.change_volume(self.vocal_volume.get()))
+        self.accomp_volume.trace_add("write", lambda *args: self.change_accomp_volume(self.accomp_volume.get()))
 
         control_frame = tk.Frame(right_frame)
         control_frame.pack(pady=5)
@@ -180,9 +188,16 @@ class PlayerApp:
         self.vol_slider = tk.Scale(right_frame, from_=0, to=1, resolution=0.01,
                                    orient=tk.HORIZONTAL, label="人声音量",
                                    command=self.change_volume,
+                                   variable=self.vocal_volume,
                                    font=("Microsoft YaHei", 11))
-        self.vol_slider.set(1.0)
         self.vol_slider.pack(fill="x", padx=30)
+
+        self.accomp_slider = tk.Scale(right_frame, from_=0, to=1, resolution=0.01,
+                                      orient=tk.HORIZONTAL, label="伴奏音量",
+                                      command=self.change_accomp_volume,
+                                      variable=self.accomp_volume,
+                                      font=("Microsoft YaHei", 11))
+        self.accomp_slider.pack(fill="x", padx=30)
 
         self.progress_var = tk.DoubleVar()
         progress_frame = tk.Frame(right_frame)
@@ -325,6 +340,8 @@ class PlayerApp:
                 sr = target_sr
             self.player = AudioPlayer(vocals, accomp, sr, output_device=out_dev, mic_device=mic_dev, mic_enabled=self.mic_enabled.get(), latency=0.03)
             self.player.set_mic_volume(self.mic_volume.get())
+            self.player.set_vocal_volume(self.vocal_volume.get())
+            self.player.set_accomp_volume(self.accomp_volume.get())
             self.player.play()
 
             self.current_audio_data = (index, vocals, accomp, sr)
@@ -426,6 +443,8 @@ class PlayerApp:
                 sr = target_sr
             self.player = AudioPlayer(vocals, accomp, sr, output_device=out_dev, mic_device=mic_dev, mic_enabled=self.mic_enabled.get(), latency=0.03)
             self.player.set_mic_volume(self.mic_volume.get())
+            self.player.set_vocal_volume(self.vocal_volume.get())
+            self.player.set_accomp_volume(self.accomp_volume.get())
             self.player.play()
             self.current_audio_data = (index, vocals, accomp, sr)
 
@@ -488,6 +507,12 @@ class PlayerApp:
     def change_volume(self, val):
         if self.player:
             self.player.set_vocal_volume(float(val))
+        self.persist_settings()
+
+    def change_accomp_volume(self, val):
+        if self.player:
+            self.player.set_accomp_volume(float(val))
+        self.persist_settings()
 
     def change_mic_volume(self, *args):
         if self.player:
@@ -557,6 +582,8 @@ class PlayerApp:
             "mic_device": self.mic_device.get(),
             "mic_volume": self.mic_volume.get(),
             "mic_enabled": self.mic_enabled.get(),
+            "vocal_volume": self.vocal_volume.get(),
+            "accomp_volume": self.accomp_volume.get(),
         }
         save_settings(settings)
 

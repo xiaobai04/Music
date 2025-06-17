@@ -12,7 +12,9 @@ DEFAULT_SETTINGS = {
     "output_device": None,
     "mic_device": None,
     "mic_volume": 1.0,
-    "mic_enabled": False
+    "mic_enabled": False,
+    "vocal_volume": 1.0,
+    "accomp_volume": 1.0
 }
 
 def load_settings():

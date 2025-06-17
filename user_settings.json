@@ -5,5 +5,7 @@
   "output_device": null,
   "mic_device": null,
   "mic_volume": 1.0,
-  "mic_enabled": false
+  "mic_enabled": false,
+  "vocal_volume": 1.0,
+  "accomp_volume": 1.0
 }
