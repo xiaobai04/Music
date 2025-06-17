@@ -29,6 +29,7 @@ class PlayerApp:
         self.play_mode = tk.StringVar(value=settings.get("play_mode", "顺序"))
         self.music_folder = settings.get("music_folder", "")
         self.mic_device = tk.StringVar(value=settings.get("mic_device", "无"))
+        self.input_device_map = {}
         self.mic_volume = tk.DoubleVar(value=settings.get("mic_volume", 1.0))
         self.mic_enabled = tk.BooleanVar(value=settings.get("mic_enabled", False))
         self.update_loop_running = False
@@ -83,10 +84,18 @@ class PlayerApp:
         tk.Label(top_options, text="播放模式：", font=("Microsoft YaHei", 11)).pack(side=tk.LEFT, padx=(20, 0))
         tk.OptionMenu(top_options, self.play_mode, "顺序", "循环", "随机").pack(side=tk.LEFT)
 
-        # 麦克风设备选择
-        input_devs = [d['name'] for d in sd.query_devices() if d['max_input_channels'] > 0]
+        # 麦克风设备选择，显示索引和 Host API，避免名称重复
+        devices = [(i, d) for i, d in enumerate(sd.query_devices()) if d['max_input_channels'] > 0]
+        input_devs = []
+        self.input_device_map.clear()
+        hostapis = sd.query_hostapis()
+        for i, dev in devices:
+            label = f"{i}: {dev['name']} ({hostapis[dev['hostapi']]['name']})"
+            input_devs.append(label)
+            self.input_device_map[label] = i
         if not input_devs:
             input_devs = ["无"]
+            self.input_device_map["无"] = None
         if self.mic_device.get() not in input_devs:
             self.mic_device.set("无")
         tk.Label(top_options, text="麦克风：", font=("Microsoft YaHei", 11)).pack(side=tk.LEFT, padx=(20,0))
@@ -250,7 +259,7 @@ class PlayerApp:
                     return
                 self.lyrics_box.insert("end", "✅ 分离完成，开始播放\n")
 
-            mic_dev = None if not self.mic_enabled.get() or self.mic_device.get() == "无" else self.mic_device.get()
+            mic_dev = None if not self.mic_enabled.get() else self.get_selected_mic_index()
             self.player = AudioPlayer(vocals, accomp, sr, mic_device=mic_dev, mic_enabled=self.mic_enabled.get(), latency=0.03)
             self.player.set_mic_volume(self.mic_volume.get())
             self.player.play()
@@ -339,7 +348,7 @@ class PlayerApp:
             if self.player:
                 self.player.stop()
 
-            mic_dev = None if not self.mic_enabled.get() or self.mic_device.get() == "无" else self.mic_device.get()
+            mic_dev = None if not self.mic_enabled.get() else self.get_selected_mic_index()
             self.player = AudioPlayer(vocals, accomp, sr, mic_device=mic_dev, mic_enabled=self.mic_enabled.get(), latency=0.03)
             self.player.set_mic_volume(self.mic_volume.get())
             self.player.play()
@@ -413,14 +422,14 @@ class PlayerApp:
     def on_mic_device_change(self, *args):
         self.persist_settings()
         if self.player and self.mic_enabled.get():
-            mic_dev = None if self.mic_device.get() == "无" else self.mic_device.get()
+            mic_dev = self.get_selected_mic_index()
             self.player.set_mic_enabled(True, mic_dev)
 
     def toggle_mic(self, *args):
         self.persist_settings()
         if self.player:
             if self.mic_enabled.get():
-                mic_dev = None if self.mic_device.get() == "无" else self.mic_device.get()
+                mic_dev = self.get_selected_mic_index()
                 self.player.set_mic_enabled(True, mic_dev)
                 self.player.set_mic_volume(float(self.mic_volume.get()))
             else:
@@ -444,6 +453,10 @@ class PlayerApp:
     def format_time(self, seconds):
         m, s = divmod(int(seconds), 60)
         return f"{m:02d}:{s:02d}"
+
+    def get_selected_mic_index(self):
+        """Return the sounddevice index for the selected microphone."""
+        return self.input_device_map.get(self.mic_device.get())
 
     def persist_settings(self):
         settings = {
