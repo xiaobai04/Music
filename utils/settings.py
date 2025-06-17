@@ -8,7 +8,9 @@ SETTINGS_FILE = os.path.join(BASE_DIR, 'user_settings.json')
 DEFAULT_SETTINGS = {
     "device": "cuda",
     "play_mode": "顺序",
-    "music_folder": ""
+    "music_folder": "",
+    "mic_device": None,
+    "mic_volume": 1.0
 }
 
 def load_settings():
