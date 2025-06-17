@@ -17,6 +17,7 @@ class AudioPlayer:
         self.position = 0
         self.blocksize = 1024
         self.vocal_volume = 1.0
+        self.accomp_volume = 1.0
         self.mic_volume = 1.0
         self.playing = False
         self.paused = False
@@ -57,7 +58,7 @@ class AudioPlayer:
 
             v_block = self.vocals[self.position:end]
             a_block = self.accomp[self.position:end]
-            mixed = a_block + self.vocal_volume * v_block
+            mixed = self.accomp_volume * a_block + self.vocal_volume * v_block
 
             if self.mic_stream and self.mic_queue:
                 mic_block = self.mic_queue.popleft()
@@ -113,6 +114,10 @@ class AudioPlayer:
     def set_vocal_volume(self, vol):
         with self.lock:
             self.vocal_volume = float(vol)
+
+    def set_accomp_volume(self, vol):
+        with self.lock:
+            self.accomp_volume = float(vol)
 
     def set_mic_volume(self, vol):
         with self.lock:
