@@ -5,6 +5,7 @@ import time
 import os
 import random
 import uuid
+import sounddevice as sd
 
 from utils.settings import load_settings, save_settings
 
@@ -27,6 +28,8 @@ class PlayerApp:
         self.device_choice = tk.StringVar(value=settings.get("device", "cuda"))
         self.play_mode = tk.StringVar(value=settings.get("play_mode", "顺序"))
         self.music_folder = settings.get("music_folder", "")
+        self.mic_device = tk.StringVar(value=settings.get("mic_device", "无"))
+        self.mic_volume = tk.DoubleVar(value=settings.get("mic_volume", 1.0))
         self.update_loop_running = False
         self.music_files = []
         self.all_music_files = []
@@ -77,9 +80,23 @@ class PlayerApp:
         tk.Label(top_options, text="播放模式：", font=("Microsoft YaHei", 11)).pack(side=tk.LEFT, padx=(20, 0))
         tk.OptionMenu(top_options, self.play_mode, "顺序", "循环", "随机").pack(side=tk.LEFT)
 
+        # 麦克风设备选择
+        input_devs = [d['name'] for d in sd.query_devices() if d['max_input_channels'] > 0]
+        if not input_devs:
+            input_devs = ["无"]
+        if self.mic_device.get() not in input_devs:
+            self.mic_device.set("无")
+        tk.Label(top_options, text="麦克风：", font=("Microsoft YaHei", 11)).pack(side=tk.LEFT, padx=(20,0))
+        tk.OptionMenu(top_options, self.mic_device, *input_devs).pack(side=tk.LEFT)
+        tk.Scale(top_options, from_=0, to=1, resolution=0.01, orient=tk.HORIZONTAL,
+                 variable=self.mic_volume, label="麦克风音量", length=120,
+                 font=("Microsoft YaHei", 10)).pack(side=tk.LEFT, padx=5)
+
         # 当选项变化时保存设置
         self.device_choice.trace_add("write", lambda *args: self.persist_settings())
         self.play_mode.trace_add("write", lambda *args: self.persist_settings())
+        self.mic_device.trace_add("write", lambda *args: self.persist_settings())
+        self.mic_volume.trace_add("write", lambda *args: self.change_mic_volume())
 
         control_frame = tk.Frame(right_frame)
         control_frame.pack(pady=5)
@@ -227,7 +244,9 @@ class PlayerApp:
                     return
                 self.lyrics_box.insert("end", "✅ 分离完成，开始播放\n")
 
-            self.player = AudioPlayer(vocals, accomp, sr)
+            mic_dev = None if self.mic_device.get() == "无" else self.mic_device.get()
+            self.player = AudioPlayer(vocals, accomp, sr, mic_device=mic_dev)
+            self.player.set_mic_volume(self.mic_volume.get())
             self.player.play()
 
             self.current_audio_data = (index, vocals, accomp, sr)
@@ -314,7 +333,9 @@ class PlayerApp:
             if self.player:
                 self.player.stop()
 
-            self.player = AudioPlayer(vocals, accomp, sr)
+            mic_dev = None if self.mic_device.get() == "无" else self.mic_device.get()
+            self.player = AudioPlayer(vocals, accomp, sr, mic_device=mic_dev)
+            self.player.set_mic_volume(self.mic_volume.get())
             self.player.play()
             self.current_audio_data = (index, vocals, accomp, sr)
 
@@ -378,6 +399,11 @@ class PlayerApp:
         if self.player:
             self.player.set_vocal_volume(float(val))
 
+    def change_mic_volume(self, *args):
+        if self.player:
+            self.player.set_mic_volume(float(self.mic_volume.get()))
+        self.persist_settings()
+
     def update_progress_loop(self):
         self.update_loop_running = True
         while self.player and (self.player.playing or self.player.paused):
@@ -402,6 +428,8 @@ class PlayerApp:
             "device": self.device_choice.get(),
             "play_mode": self.play_mode.get(),
             "music_folder": self.music_folder,
+            "mic_device": self.mic_device.get(),
+            "mic_volume": self.mic_volume.get(),
         }
         save_settings(settings)
 

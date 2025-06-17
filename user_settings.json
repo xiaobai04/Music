@@ -1,5 +1,7 @@
 {
   "device": "cuda",
   "play_mode": "顺序",
-  "music_folder": ""
- }
+  "music_folder": "",
+  "mic_device": null,
+  "mic_volume": 1.0
+}
