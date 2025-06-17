@@ -5,6 +5,7 @@ import time
 import os
 import random
 import uuid
+import platform
 import sounddevice as sd
 
 from utils.settings import load_settings, save_settings
@@ -21,6 +22,13 @@ class PlayerApp:
         self.root = root
         self.root.title("🎵 人声分离播放器")
         self.root.geometry("1200x720")
+
+        # Prefer WASAPI on Windows for lower latency microphone input
+        if platform.system() == "Windows":
+            for idx, api in enumerate(sd.query_hostapis()):
+                if "WASAPI" in api.get("name", ""):
+                    sd.default.hostapi = idx
+                    break
 
         self.audio_path = None
         self.player = None
