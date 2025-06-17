@@ -118,6 +118,25 @@ class AudioPlayer:
         with self.lock:
             self.mic_volume = float(vol)
 
+    def change_output_device(self, device):
+        with self.lock:
+            self.output_device = device
+            if self.stream:
+                was_running = self.playing or self.paused
+                self.stream.stop()
+                self.stream.close()
+                self.stream = sd.OutputStream(
+                    samplerate=self.sample_rate,
+                    channels=self.channels,
+                    blocksize=self.blocksize,
+                    dtype="float32",
+                    callback=self._callback,
+                    latency=self.latency,
+                    device=self.output_device
+                )
+                if was_running:
+                    self.stream.start()
+
     def start_mic(self, device=None):
         with self.lock:
             if device is not None:
