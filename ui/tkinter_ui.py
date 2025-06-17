@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, ttk
 import threading
 import time
 import os
@@ -23,11 +23,28 @@ class PlayerApp:
         self.root.title("🎵 人声分离播放器")
         self.root.geometry("1200x720")
 
-        # Prefer WASAPI on Windows for lower latency microphone input
+        # Use a modern ttk theme
+        style = ttk.Style()
+        try:
+            style.theme_use("clam")
+        except Exception:
+            pass
+
+        # Prefer low-latency devices when available
+        sd.default.latency = "low"
+
+        # On Windows select the WASAPI host's defaults if present
         if platform.system() == "Windows":
-            for idx, api in enumerate(sd.query_hostapis()):
+            for api in sd.query_hostapis():
                 if "WASAPI" in api.get("name", ""):
-                    sd.default.hostapi = idx
+                    in_dev = api.get("default_input_device", -1)
+                    out_dev = api.get("default_output_device", -1)
+                    cur_in, cur_out = sd.default.device
+                    if in_dev >= 0:
+                        cur_in = in_dev
+                    if out_dev >= 0:
+                        cur_out = out_dev
+                    sd.default.device = (cur_in, cur_out)
                     break
 
         self.audio_path = None
@@ -44,6 +61,7 @@ class PlayerApp:
         self.mic_volume = tk.DoubleVar(value=settings.get("mic_volume", 1.0))
         self.mic_enabled = tk.BooleanVar(value=settings.get("mic_enabled", False))
         self.update_loop_running = False
+        self.dragging = False
         self.music_files = []
         self.all_music_files = []
         self.current_index = -1
@@ -139,7 +157,7 @@ class PlayerApp:
         # 当选项变化时保存设置
         self.device_choice.trace_add("write", lambda *args: self.persist_settings())
         self.play_mode.trace_add("write", lambda *args: self.persist_settings())
-        self.output_device.trace_add("write", lambda *args: self.persist_settings())
+        self.output_device.trace_add("write", lambda *args: self.on_output_device_change())
         self.mic_device.trace_add("write", lambda *args: self.on_mic_device_change())
         self.mic_volume.trace_add("write", lambda *args: self.change_mic_volume())
         self.mic_enabled.trace_add("write", lambda *args: self.toggle_mic())
@@ -167,11 +185,13 @@ class PlayerApp:
         self.vol_slider.pack(fill="x", padx=30)
 
         self.progress_var = tk.DoubleVar()
-        self.progress_bar = tk.Scale(right_frame, from_=0, to=100, orient=tk.HORIZONTAL,
-                                     variable=self.progress_var, label="播放进度",
-                                     showvalue=False, state=tk.DISABLED,
-                                     font=("Microsoft YaHei", 11))
-        self.progress_bar.pack(fill="x", padx=30, pady=10)
+        progress_frame = tk.Frame(right_frame)
+        progress_frame.pack(fill="x", padx=30, pady=10)
+        tk.Label(progress_frame, text="播放进度", font=("Microsoft YaHei", 11)).pack(anchor="w")
+        self.progress_bar = ttk.Scale(progress_frame, from_=0, to=100, orient=tk.HORIZONTAL,
+                                      variable=self.progress_var)
+        self.progress_bar.pack(fill="x", expand=True)
+        self.progress_bar.bind("<ButtonPress-1>", self.start_drag)
         self.progress_bar.bind("<ButtonRelease-1>", self.on_seek)
 
         self.time_label = tk.Label(right_frame, text="00:00 / 00:00", font=("Courier", 12, "bold"))
@@ -490,12 +510,22 @@ class PlayerApp:
             else:
                 self.player.set_mic_enabled(False)
 
+    def on_output_device_change(self, *args):
+        self.persist_settings()
+        if self.player:
+            out_dev = self.get_selected_output_index()
+            self.player.change_output_device(out_dev)
+
+    def start_drag(self, event):
+        self.dragging = True
+
     def update_progress_loop(self):
         self.update_loop_running = True
         while self.player and (self.player.playing or self.player.paused):
             current = self.player.get_current_time()
             total = self.player.num_frames / self.player.sample_rate
-            self.progress_var.set(self.player.get_progress() * 100)
+            if not self.dragging:
+                self.progress_var.set(self.player.get_progress() * 100)
             self.time_label.config(text=f"{self.format_time(current)} / {self.format_time(total)}")
             time.sleep(0.2)
         self.update_loop_running = False
@@ -504,6 +534,7 @@ class PlayerApp:
         if self.player:
             percent = self.progress_var.get() / 100
             self.player.seek_to(percent)
+        self.dragging = False
 
     def format_time(self, seconds):
         m, s = divmod(int(seconds), 60)
