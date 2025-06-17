@@ -21,6 +21,7 @@ class AudioPlayer:
         self.stream = None
         self.mic_stream = None
         self.mic_queue = collections.deque()
+        self.mic_channels = self.channels
         self.mic_device = mic_device
         self.mic_enabled = mic_enabled
         self.latency = latency
@@ -28,7 +29,12 @@ class AudioPlayer:
 
     def _mic_callback(self, indata, frames, time, status):
         with self.lock:
-            self.mic_queue.append(indata.copy())
+            data = indata.copy()
+            if data.shape[1] == 1 and self.channels > 1:
+                data = np.repeat(data, self.channels, axis=1)
+            elif data.shape[1] > self.channels:
+                data = data[:, :self.channels]
+            self.mic_queue.append(data)
             if len(self.mic_queue) > 5:
                 self.mic_queue.popleft()
 
@@ -53,6 +59,10 @@ class AudioPlayer:
                 if mic_block.shape[0] < frames:
                     pad = np.zeros((frames - mic_block.shape[0], self.channels), dtype='float32')
                     mic_block = np.concatenate([mic_block, pad], axis=0)
+                if mic_block.shape[1] < self.channels:
+                    mic_block = np.repeat(mic_block, self.channels, axis=1)
+                elif mic_block.shape[1] > self.channels:
+                    mic_block = mic_block[:, :self.channels]
                 mixed += self.mic_volume * mic_block[:frames]
 
             outdata[:len(mixed)] = mixed
@@ -110,10 +120,12 @@ class AudioPlayer:
                 self.stop_mic()
             if self.mic_device is None:
                 return
+            info = sd.query_devices(self.mic_device, 'input')
+            self.mic_channels = min(info['max_input_channels'], self.channels)
             self.mic_stream = sd.InputStream(
                 device=self.mic_device,
                 samplerate=self.sample_rate,
-                channels=self.channels,
+                channels=self.mic_channels,
                 blocksize=self.blocksize,
                 dtype='float32',
                 callback=self._mic_callback,
