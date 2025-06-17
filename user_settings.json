@@ -2,6 +2,7 @@
   "device": "cuda",
   "play_mode": "顺序",
   "music_folder": "",
+  "output_device": null,
   "mic_device": null,
   "mic_volume": 1.0,
   "mic_enabled": false

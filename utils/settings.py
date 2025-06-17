@@ -9,6 +9,7 @@ DEFAULT_SETTINGS = {
     "device": "cuda",
     "play_mode": "顺序",
     "music_folder": "",
+    "output_device": None,
     "mic_device": None,
     "mic_volume": 1.0,
     "mic_enabled": False
