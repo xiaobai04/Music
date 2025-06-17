@@ -10,7 +10,8 @@ DEFAULT_SETTINGS = {
     "play_mode": "顺序",
     "music_folder": "",
     "mic_device": None,
-    "mic_volume": 1.0
+    "mic_volume": 1.0,
+    "mic_enabled": False
 }
 
 def load_settings():
