@@ -286,7 +286,9 @@ class PlayerApp:
             out_dev = self.get_selected_output_index()
             try:
                 dev_info = sd.query_devices(out_dev, 'output') if out_dev is not None else sd.query_devices(None, 'output')
-                target_sr = int(dev_info['default_samplerate'])
+                target_sr = int(dev_info.get('default_samplerate', sr)) or sr
+                if target_sr <= 0 or target_sr > 192000:
+                    target_sr = sr
             except Exception:
                 target_sr = sr
             if sr != target_sr:
@@ -385,7 +387,9 @@ class PlayerApp:
             out_dev = self.get_selected_output_index()
             try:
                 dev_info = sd.query_devices(out_dev, 'output') if out_dev is not None else sd.query_devices(None, 'output')
-                target_sr = int(dev_info['default_samplerate'])
+                target_sr = int(dev_info.get('default_samplerate', sr)) or sr
+                if target_sr <= 0 or target_sr > 192000:
+                    target_sr = sr
             except Exception:
                 target_sr = sr
             if sr != target_sr:
