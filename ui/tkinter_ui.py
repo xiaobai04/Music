@@ -30,6 +30,7 @@ class PlayerApp:
         self.music_folder = settings.get("music_folder", "")
         self.mic_device = tk.StringVar(value=settings.get("mic_device", "无"))
         self.mic_volume = tk.DoubleVar(value=settings.get("mic_volume", 1.0))
+        self.mic_enabled = tk.BooleanVar(value=settings.get("mic_enabled", False))
         self.update_loop_running = False
         self.music_files = []
         self.all_music_files = []
@@ -90,6 +91,8 @@ class PlayerApp:
             self.mic_device.set("无")
         tk.Label(top_options, text="麦克风：", font=("Microsoft YaHei", 11)).pack(side=tk.LEFT, padx=(20,0))
         tk.OptionMenu(top_options, self.mic_device, *input_devs).pack(side=tk.LEFT)
+        tk.Checkbutton(top_options, text="启用麦克风", variable=self.mic_enabled,
+                       font=("Microsoft YaHei", 10)).pack(side=tk.LEFT, padx=5)
         tk.Scale(top_options, from_=0, to=1, resolution=0.01, orient=tk.HORIZONTAL,
                  variable=self.mic_volume, label="麦克风音量", length=120,
                  font=("Microsoft YaHei", 10)).pack(side=tk.LEFT, padx=5)
@@ -97,8 +100,9 @@ class PlayerApp:
         # 当选项变化时保存设置
         self.device_choice.trace_add("write", lambda *args: self.persist_settings())
         self.play_mode.trace_add("write", lambda *args: self.persist_settings())
-        self.mic_device.trace_add("write", lambda *args: self.persist_settings())
+        self.mic_device.trace_add("write", lambda *args: self.on_mic_device_change())
         self.mic_volume.trace_add("write", lambda *args: self.change_mic_volume())
+        self.mic_enabled.trace_add("write", lambda *args: self.toggle_mic())
 
         control_frame = tk.Frame(right_frame)
         control_frame.pack(pady=5)
@@ -246,8 +250,8 @@ class PlayerApp:
                     return
                 self.lyrics_box.insert("end", "✅ 分离完成，开始播放\n")
 
-            mic_dev = None if self.mic_device.get() == "无" else self.mic_device.get()
-            self.player = AudioPlayer(vocals, accomp, sr, mic_device=mic_dev, latency=0.03)
+            mic_dev = None if not self.mic_enabled.get() or self.mic_device.get() == "无" else self.mic_device.get()
+            self.player = AudioPlayer(vocals, accomp, sr, mic_device=mic_dev, mic_enabled=self.mic_enabled.get(), latency=0.03)
             self.player.set_mic_volume(self.mic_volume.get())
             self.player.play()
 
@@ -335,8 +339,8 @@ class PlayerApp:
             if self.player:
                 self.player.stop()
 
-            mic_dev = None if self.mic_device.get() == "无" else self.mic_device.get()
-            self.player = AudioPlayer(vocals, accomp, sr, mic_device=mic_dev, latency=0.03)
+            mic_dev = None if not self.mic_enabled.get() or self.mic_device.get() == "无" else self.mic_device.get()
+            self.player = AudioPlayer(vocals, accomp, sr, mic_device=mic_dev, mic_enabled=self.mic_enabled.get(), latency=0.03)
             self.player.set_mic_volume(self.mic_volume.get())
             self.player.play()
             self.current_audio_data = (index, vocals, accomp, sr)
@@ -406,6 +410,22 @@ class PlayerApp:
             self.player.set_mic_volume(float(self.mic_volume.get()))
         self.persist_settings()
 
+    def on_mic_device_change(self, *args):
+        self.persist_settings()
+        if self.player and self.mic_enabled.get():
+            mic_dev = None if self.mic_device.get() == "无" else self.mic_device.get()
+            self.player.set_mic_enabled(True, mic_dev)
+
+    def toggle_mic(self, *args):
+        self.persist_settings()
+        if self.player:
+            if self.mic_enabled.get():
+                mic_dev = None if self.mic_device.get() == "无" else self.mic_device.get()
+                self.player.set_mic_enabled(True, mic_dev)
+                self.player.set_mic_volume(float(self.mic_volume.get()))
+            else:
+                self.player.set_mic_enabled(False)
+
     def update_progress_loop(self):
         self.update_loop_running = True
         while self.player and (self.player.playing or self.player.paused):
@@ -432,6 +452,7 @@ class PlayerApp:
             "music_folder": self.music_folder,
             "mic_device": self.mic_device.get(),
             "mic_volume": self.mic_volume.get(),
+            "mic_enabled": self.mic_enabled.get(),
         }
         save_settings(settings)
 

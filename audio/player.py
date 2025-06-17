@@ -5,7 +5,7 @@ import threading
 import collections
 
 class AudioPlayer:
-    def __init__(self, vocals, accomp, sample_rate, mic_device=None, latency=0.05):
+    def __init__(self, vocals, accomp, sample_rate, mic_device=None, mic_enabled=False, latency=0.05):
         self.vocals = vocals
         self.accomp = accomp
         self.sample_rate = sample_rate
@@ -22,6 +22,7 @@ class AudioPlayer:
         self.mic_stream = None
         self.mic_queue = collections.deque()
         self.mic_device = mic_device
+        self.mic_enabled = mic_enabled
         self.latency = latency
         self.lock = threading.Lock()
 
@@ -63,17 +64,8 @@ class AudioPlayer:
         self.playing = True
         self.paused = False
         self.position = 0
-        if self.mic_device is not None:
-            self.mic_stream = sd.InputStream(
-                device=self.mic_device,
-                samplerate=self.sample_rate,
-                channels=self.channels,
-                blocksize=self.blocksize,
-                dtype='float32',
-                callback=self._mic_callback,
-                latency=self.latency
-            )
-            self.mic_stream.start()
+        if self.mic_enabled and self.mic_device is not None:
+            self.start_mic(self.mic_device)
         self.stream = sd.OutputStream(
             samplerate=self.sample_rate,
             channels=self.channels,
@@ -100,10 +92,7 @@ class AudioPlayer:
             self.stream.close()
             self.stream = None
         if self.mic_stream:
-            self.mic_stream.stop()
-            self.mic_stream.close()
-            self.mic_stream = None
-            self.mic_queue.clear()
+            self.stop_mic()
 
     def set_vocal_volume(self, vol):
         with self.lock:
@@ -112,6 +101,41 @@ class AudioPlayer:
     def set_mic_volume(self, vol):
         with self.lock:
             self.mic_volume = float(vol)
+
+    def start_mic(self, device=None):
+        with self.lock:
+            if device is not None:
+                self.mic_device = device
+            if self.mic_stream:
+                self.stop_mic()
+            if self.mic_device is None:
+                return
+            self.mic_stream = sd.InputStream(
+                device=self.mic_device,
+                samplerate=self.sample_rate,
+                channels=self.channels,
+                blocksize=self.blocksize,
+                dtype='float32',
+                callback=self._mic_callback,
+                latency=self.latency
+            )
+            self.mic_stream.start()
+
+    def stop_mic(self):
+        with self.lock:
+            if self.mic_stream:
+                self.mic_stream.stop()
+                self.mic_stream.close()
+                self.mic_stream = None
+                self.mic_queue.clear()
+
+    def set_mic_enabled(self, enabled, device=None):
+        with self.lock:
+            self.mic_enabled = bool(enabled)
+            if self.mic_enabled:
+                self.start_mic(device or self.mic_device)
+            else:
+                self.stop_mic()
 
     def get_progress(self):
         return self.position / self.num_frames if self.num_frames else 0.0
