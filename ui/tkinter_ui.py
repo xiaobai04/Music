@@ -523,15 +523,23 @@ class PlayerApp:
         self.persist_settings()
         if self.player and self.mic_enabled.get():
             mic_dev = self.get_selected_mic_index()
-            self.player.set_mic_enabled(True, mic_dev)
+            try:
+                self.player.set_mic_enabled(True, mic_dev)
+            except Exception as e:
+                messagebox.showerror("麦克风错误", str(e))
+                self.mic_enabled.set(False)
 
     def toggle_mic(self, *args):
         self.persist_settings()
         if self.player:
             if self.mic_enabled.get():
                 mic_dev = self.get_selected_mic_index()
-                self.player.set_mic_enabled(True, mic_dev)
-                self.player.set_mic_volume(float(self.mic_volume.get()))
+                try:
+                    self.player.set_mic_enabled(True, mic_dev)
+                    self.player.set_mic_volume(float(self.mic_volume.get()))
+                except Exception as e:
+                    messagebox.showerror("麦克风错误", str(e))
+                    self.mic_enabled.set(False)
             else:
                 self.player.set_mic_enabled(False)
 
@@ -539,7 +547,10 @@ class PlayerApp:
         self.persist_settings()
         if self.player:
             out_dev = self.get_selected_output_index()
-            self.player.change_output_device(out_dev)
+            try:
+                self.player.change_output_device(out_dev)
+            except Exception as e:
+                messagebox.showerror("输出设备错误", str(e))
 
     def start_drag(self, event):
         self.dragging = True
