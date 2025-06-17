@@ -5,7 +5,7 @@ import threading
 import collections
 
 class AudioPlayer:
-    def __init__(self, vocals, accomp, sample_rate, mic_device=None):
+    def __init__(self, vocals, accomp, sample_rate, mic_device=None, latency=0.05):
         self.vocals = vocals
         self.accomp = accomp
         self.sample_rate = sample_rate
@@ -22,6 +22,7 @@ class AudioPlayer:
         self.mic_stream = None
         self.mic_queue = collections.deque()
         self.mic_device = mic_device
+        self.latency = latency
         self.lock = threading.Lock()
 
     def _mic_callback(self, indata, frames, time, status):
@@ -69,7 +70,8 @@ class AudioPlayer:
                 channels=self.channels,
                 blocksize=self.blocksize,
                 dtype='float32',
-                callback=self._mic_callback
+                callback=self._mic_callback,
+                latency=self.latency
             )
             self.mic_stream.start()
         self.stream = sd.OutputStream(
@@ -77,7 +79,8 @@ class AudioPlayer:
             channels=self.channels,
             blocksize=self.blocksize,
             dtype='float32',
-            callback=self._callback
+            callback=self._callback,
+            latency=self.latency
         )
         self.stream.start()
 

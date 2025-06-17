@@ -19,7 +19,7 @@ class PlayerApp:
     def __init__(self, root):
         self.root = root
         self.root.title("🎵 人声分离播放器")
-        self.root.geometry("1000x620")
+        self.root.geometry("1200x720")
 
         self.audio_path = None
         self.player = None
@@ -46,21 +46,23 @@ class PlayerApp:
 
         # 左侧文件列表
         left_frame = tk.Frame(main_frame)
-        left_frame.pack(side=tk.LEFT, fill="y", padx=10, pady=10)
+        left_frame.pack(side=tk.LEFT, fill="both", expand=True, padx=10, pady=10)
 
         tk.Button(left_frame, text="选择音乐文件夹", command=self.choose_folder,
                   font=("Microsoft YaHei", 11, "bold")).pack(pady=5)
 
         search_frame = tk.Frame(left_frame)
-        search_frame.pack(pady=5)
+        search_frame.pack(pady=5, fill="x")
         self.search_var = tk.StringVar()
-        tk.Entry(search_frame, textvariable=self.search_var,
-                 font=("Microsoft YaHei", 11), width=30).pack(side=tk.LEFT)
+        self.search_entry = tk.Entry(search_frame, textvariable=self.search_var,
+                                     font=("Microsoft YaHei", 11))
+        self.search_entry.pack(side=tk.LEFT, fill="x", expand=True)
+        self.search_entry.bind("<Return>", lambda e: self.search_songs())
         tk.Button(search_frame, text="搜索", command=self.search_songs,
                   font=("Microsoft YaHei", 10)).pack(side=tk.LEFT, padx=5)
 
-        self.file_listbox = tk.Listbox(left_frame, height=30, font=("Microsoft YaHei", 11), width=50)
-        self.file_listbox.pack()
+        self.file_listbox = tk.Listbox(left_frame, font=("Microsoft YaHei", 11))
+        self.file_listbox.pack(fill="both", expand=True)
         self.file_listbox.bind("<Double-Button-1>", self.on_song_double_click)
 
         if self.music_folder and os.path.isdir(self.music_folder):
@@ -131,8 +133,8 @@ class PlayerApp:
         self.time_label = tk.Label(right_frame, text="00:00 / 00:00", font=("Courier", 12, "bold"))
         self.time_label.pack()
 
-        self.lyrics_box = tk.Text(right_frame, height=12, width=70, font=("Microsoft YaHei", 14))
-        self.lyrics_box.pack(pady=5)
+        self.lyrics_box = tk.Text(right_frame, font=("Microsoft YaHei", 14))
+        self.lyrics_box.pack(fill="both", expand=True, pady=5)
 
         self.play_lock = threading.Lock()  # 防止重复播放
         self.auto_next_enabled = True      # 控制是否启用自动播放下一首
@@ -245,7 +247,7 @@ class PlayerApp:
                 self.lyrics_box.insert("end", "✅ 分离完成，开始播放\n")
 
             mic_dev = None if self.mic_device.get() == "无" else self.mic_device.get()
-            self.player = AudioPlayer(vocals, accomp, sr, mic_device=mic_dev)
+            self.player = AudioPlayer(vocals, accomp, sr, mic_device=mic_dev, latency=0.03)
             self.player.set_mic_volume(self.mic_volume.get())
             self.player.play()
 
@@ -334,7 +336,7 @@ class PlayerApp:
                 self.player.stop()
 
             mic_dev = None if self.mic_device.get() == "无" else self.mic_device.get()
-            self.player = AudioPlayer(vocals, accomp, sr, mic_device=mic_dev)
+            self.player = AudioPlayer(vocals, accomp, sr, mic_device=mic_dev, latency=0.03)
             self.player.set_mic_volume(self.mic_volume.get())
             self.player.play()
             self.current_audio_data = (index, vocals, accomp, sr)
