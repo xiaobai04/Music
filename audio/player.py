@@ -3,11 +3,13 @@ import sounddevice as sd
 import numpy as np
 import threading
 import collections
+from utils.audio_utils import resample_audio
 
 class AudioPlayer:
     def __init__(self, vocals, accomp, sample_rate, output_device=None, mic_device=None, mic_enabled=False, latency=0.05):
         self.vocals = vocals
         self.accomp = accomp
+        self.mic_input_sr = sample_rate
         self.sample_rate = sample_rate
 
         self.num_frames = min(len(vocals), len(accomp))
@@ -31,6 +33,8 @@ class AudioPlayer:
     def _mic_callback(self, indata, frames, time, status):
         with self.lock:
             data = indata.copy()
+            if self.mic_input_sr != self.sample_rate:
+                data = resample_audio(data, self.mic_input_sr, self.sample_rate)
             if data.shape[1] == 1 and self.channels > 1:
                 data = np.repeat(data, self.channels, axis=1)
             elif data.shape[1] > self.channels:
@@ -124,9 +128,15 @@ class AudioPlayer:
                 return
             info = sd.query_devices(self.mic_device, 'input')
             self.mic_channels = min(info['max_input_channels'], self.channels)
+            target_sr = int(info.get('default_samplerate', self.sample_rate)) or self.sample_rate
+            if target_sr <= 0 or target_sr > 192000:
+                target_sr = self.sample_rate
+            if target_sr > self.sample_rate:
+                target_sr = self.sample_rate
+            self.mic_input_sr = target_sr
             self.mic_stream = sd.InputStream(
                 device=self.mic_device,
-                samplerate=self.sample_rate,
+                samplerate=self.mic_input_sr,
                 channels=self.mic_channels,
                 blocksize=self.blocksize,
                 dtype='float32',
