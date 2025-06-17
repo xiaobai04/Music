@@ -29,7 +29,8 @@ class AudioPlayer:
         self.mic_device = mic_device
         self.mic_enabled = mic_enabled
         self.latency = latency
-        self.lock = threading.Lock()
+        # Use reentrant lock to allow nested calls from callbacks
+        self.lock = threading.RLock()
 
     def _mic_callback(self, indata, frames, time, status):
         with self.lock:
@@ -130,17 +131,22 @@ class AudioPlayer:
                 was_running = self.playing or self.paused
                 self.stream.stop()
                 self.stream.close()
-                self.stream = sd.OutputStream(
-                    samplerate=self.sample_rate,
-                    channels=self.channels,
-                    blocksize=self.blocksize,
-                    dtype="float32",
-                    callback=self._callback,
-                    latency=self.latency,
-                    device=self.output_device
-                )
-                if was_running:
-                    self.stream.start()
+                try:
+                    self.stream = sd.OutputStream(
+                        samplerate=self.sample_rate,
+                        channels=self.channels,
+                        blocksize=self.blocksize,
+                        dtype="float32",
+                        callback=self._callback,
+                        latency=self.latency,
+                        device=self.output_device
+                    )
+                    if was_running:
+                        self.stream.start()
+                except Exception:
+                    self.stream = None
+                    self.output_device = None
+                    raise
 
     def start_mic(self, device=None):
         with self.lock:
@@ -150,24 +156,30 @@ class AudioPlayer:
                 self.stop_mic()
             if self.mic_device is None:
                 return
-            info = sd.query_devices(self.mic_device, 'input')
-            self.mic_channels = min(info['max_input_channels'], self.channels)
-            target_sr = int(info.get('default_samplerate', self.sample_rate)) or self.sample_rate
-            if target_sr <= 0 or target_sr > 192000:
-                target_sr = self.sample_rate
-            if target_sr > self.sample_rate:
-                target_sr = self.sample_rate
-            self.mic_input_sr = target_sr
-            self.mic_stream = sd.InputStream(
-                device=self.mic_device,
-                samplerate=self.mic_input_sr,
-                channels=self.mic_channels,
-                blocksize=self.blocksize,
-                dtype='float32',
-                callback=self._mic_callback,
-                latency=self.latency
-            )
-            self.mic_stream.start()
+            try:
+                info = sd.query_devices(self.mic_device, 'input')
+                self.mic_channels = min(info['max_input_channels'], self.channels)
+                target_sr = int(info.get('default_samplerate', self.sample_rate)) or self.sample_rate
+                if target_sr <= 0 or target_sr > 192000:
+                    target_sr = self.sample_rate
+                if target_sr > self.sample_rate:
+                    target_sr = self.sample_rate
+                self.mic_input_sr = target_sr
+                self.mic_stream = sd.InputStream(
+                    device=self.mic_device,
+                    samplerate=self.mic_input_sr,
+                    channels=self.mic_channels,
+                    blocksize=self.blocksize,
+                    dtype='float32',
+                    callback=self._mic_callback,
+                    latency=self.latency
+                )
+                self.mic_stream.start()
+            except Exception:
+                # If starting the mic fails, disable it to avoid deadlock
+                self.mic_stream = None
+                self.mic_enabled = False
+                raise
 
     def stop_mic(self):
         with self.lock:
