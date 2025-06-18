@@ -2,4 +2,5 @@ torch
 torchaudio
 demucs
 sounddevice
+numpy
 soundfile

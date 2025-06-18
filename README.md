@@ -20,6 +20,9 @@
 pip install -r requirements.txt
 ```
 
+`requirements.txt` 已包含 `torch`、`torchaudio`、`demucs`、`sounddevice`、
+`numpy` 和 `soundfile` 等主要依赖。安装完成后即可运行本程序。
+
 ### 额外依赖
 
 本项目需要系统中安装 [FFmpeg](https://ffmpeg.org/)。大多数 Linux 发行版可直接
