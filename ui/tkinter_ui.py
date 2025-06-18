@@ -39,10 +39,11 @@ class PlayerApp:
         # Prefer low-latency devices when available
         sd.default.latency = "low"
 
-        # On Windows select the WASAPI host's defaults if present
+        # On Windows prefer the WASAPI host for better compatibility
         if platform.system() == "Windows":
-            for api in sd.query_hostapis():
+            for idx, api in enumerate(sd.query_hostapis()):
                 if "WASAPI" in api.get("name", ""):
+                    sd.default.hostapi = idx
                     in_dev = api.get("default_input_device", -1)
                     out_dev = api.get("default_output_device", -1)
                     cur_in, cur_out = sd.default.device
