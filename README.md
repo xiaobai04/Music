@@ -20,6 +20,17 @@
 pip install -r requirements.txt
 ```
 
+### 额外依赖
+
+本项目需要系统中安装 [FFmpeg](https://ffmpeg.org/)。大多数 Linux 发行版可直接
+通过软件包管理器安装，Windows 用户可从官方网站下载并将可执行文件加入 `PATH` 环
+境变量。
+
+如果打算使用 **GPU** 进行人声分离，请确保安装的 PyTorch 版本已编译并启用了 CUDA。
+可访问 [PyTorch 官网](https://pytorch.org/) 根据个人显卡与 CUDA 版本选择合适的安
+装命令。若未安装带 CUDA 的 PyTorch，在界面中选择 `cuda` 将会出现 `torch not compiled
+with cuda enabled` 错误。此时请改用 `cpu` 运行或重新安装带 CUDA 的 PyTorch。
+
 ## 使用
 
 在仓库根目录直接运行：
