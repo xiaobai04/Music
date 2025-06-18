@@ -76,6 +76,7 @@ class PlayerApp:
         self.next_audio_data = None
         self.prev_audio_data = None
         self.current_audio_data = None
+        self.future_queue = []
         self.session_id = None
 
         main_frame = tk.Frame(root)
@@ -103,6 +104,9 @@ class PlayerApp:
         self.file_listbox = tk.Listbox(left_frame, font=("Microsoft YaHei", 11))
         self.file_listbox.pack(fill="both", expand=True)
         self.file_listbox.bind("<Double-Button-1>", self.on_song_double_click)
+
+        tk.Button(left_frame, text="加入播放队列", command=self.add_to_queue,
+                  font=("Microsoft YaHei", 10)).pack(pady=5)
 
         if self.music_folder and os.path.isdir(self.music_folder):
             self.load_folder(self.music_folder)
@@ -269,6 +273,14 @@ class PlayerApp:
         self.current_index = index[0]
         threading.Thread(target=lambda: self.play_song(self.current_index), daemon=True).start()
 
+    def add_to_queue(self):
+        index = self.file_listbox.curselection()
+        if not index:
+            return
+        path = self.music_files[index[0]]
+        self.future_queue.append(path)
+        self.lyrics_box.insert("end", f"✅ 已加入待播：{os.path.basename(path)}\n")
+
 
     def play_previous_song(self):
         if not self.music_files:
@@ -383,7 +395,7 @@ class PlayerApp:
 
 
     def preload_next_song(self, session_id):
-        next_index = self.get_next_index()
+        next_index = self.get_next_index(peek=True)
         if next_index is None or session_id != self.session_id:
             return
         # 如果上一首就是接下来的歌曲，直接复用缓存
@@ -477,9 +489,15 @@ class PlayerApp:
             threading.Thread(target=lambda: self.preload_prev_song(self.session_id), daemon=True).start()
 
 
-    def get_next_index(self):
+    def get_next_index(self, peek=False):
         if not self.music_files:
             return None
+        if self.future_queue:
+            path = self.future_queue[0]
+            if not peek:
+                self.future_queue.pop(0)
+            if path in self.music_files:
+                return self.music_files.index(path)
         mode = self.play_mode.get()
         if mode == "顺序":
             return self.current_index + 1 if self.current_index + 1 < len(self.music_files) else None
