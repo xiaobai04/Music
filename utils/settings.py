@@ -14,7 +14,8 @@ DEFAULT_SETTINGS = {
     "mic_volume": 1.0,
     "mic_enabled": False,
     "vocal_volume": 1.0,
-    "accomp_volume": 1.0
+    "accomp_volume": 1.0,
+    "queue": []
 }
 
 def load_settings():

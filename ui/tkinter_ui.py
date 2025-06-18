@@ -77,7 +77,7 @@ class PlayerApp:
         self.next_audio_data = None
         self.prev_audio_data = None
         self.current_audio_data = None
-        self.future_queue = []
+        self.future_queue = list(settings.get("queue", []))
         self.session_id = None
 
         main_frame = tk.Frame(root)
@@ -230,6 +230,13 @@ class PlayerApp:
         tk.Button(export_frame, text="导出伴奏", command=self.export_accompaniment,
                   font=("Microsoft YaHei", 10)).pack(side=tk.LEFT, padx=5)
 
+        queue_frame = tk.Frame(right_frame)
+        queue_frame.pack(fill="x", padx=30, pady=5)
+        tk.Label(queue_frame, text="待播列表", font=("Microsoft YaHei", 11)).pack(anchor="w")
+        self.queue_listbox = tk.Listbox(queue_frame, height=5, font=("Microsoft YaHei", 10))
+        self.queue_listbox.pack(fill="both", expand=True)
+        self.update_queue_listbox()
+
         self.lyrics_box = tk.Text(right_frame, font=("Microsoft YaHei", 14))
         self.lyrics_box.pack(fill="both", expand=True, pady=5)
 
@@ -252,11 +259,26 @@ class PlayerApp:
         self.search_var.set("")
         self.music_files = list(self.all_music_files)
         self.refresh_file_listbox()
+        self.update_queue_listbox()
 
     def refresh_file_listbox(self):
         self.file_listbox.delete(0, tk.END)
         for f in self.music_files:
             self.file_listbox.insert(tk.END, os.path.basename(f))
+
+    def update_queue_listbox(self):
+        self.queue_listbox.delete(0, tk.END)
+        if not self.future_queue:
+            self.queue_listbox.insert(tk.END, "(空)")
+        else:
+            for p in self.future_queue:
+                self.queue_listbox.insert(tk.END, os.path.basename(p))
+
+    def clear_queue(self):
+        if self.future_queue:
+            self.future_queue.clear()
+            self.update_queue_listbox()
+            self.persist_settings()
 
     def search_songs(self):
         query = self.search_var.get().lower()
@@ -270,6 +292,7 @@ class PlayerApp:
         index = self.file_listbox.curselection()
         if not index:
             return
+        self.clear_queue()
         self.auto_next_enabled = False  # 禁止自动续播
         self.current_index = index[0]
         threading.Thread(target=lambda: self.play_song(self.current_index), daemon=True).start()
@@ -281,11 +304,14 @@ class PlayerApp:
         path = self.music_files[index[0]]
         self.future_queue.append(path)
         self.lyrics_box.insert("end", f"✅ 已加入待播：{os.path.basename(path)}\n")
+        self.update_queue_listbox()
+        self.persist_settings()
 
 
     def play_previous_song(self):
         if not self.music_files:
             return
+        self.clear_queue()
         prev_index = self.get_prev_index()
         if prev_index is None:
             return
@@ -302,6 +328,7 @@ class PlayerApp:
 
     def play_next_song_manual(self):
         self.auto_next_enabled = False  # 禁止自动续播
+        self.clear_queue()
         next_index = self.get_next_index()
         if next_index is not None:
             self.current_index = next_index
@@ -497,6 +524,8 @@ class PlayerApp:
             path = self.future_queue[0]
             if not peek:
                 self.future_queue.pop(0)
+                self.update_queue_listbox()
+                self.persist_settings()
             if path in self.music_files:
                 return self.music_files.index(path)
         mode = self.play_mode.get()
@@ -675,6 +704,7 @@ class PlayerApp:
             "mic_enabled": self.mic_enabled.get(),
             "vocal_volume": self.vocal_volume.get(),
             "accomp_volume": self.accomp_volume.get(),
+            "queue": self.future_queue,
         }
         save_settings(settings)
 
