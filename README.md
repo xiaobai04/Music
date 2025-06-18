@@ -31,7 +31,7 @@ pip install -r requirements.txt
 装命令。若未安装带 CUDA 的 PyTorch，在界面中选择 `cuda` 将会出现 `torch not compiled
 with cuda enabled` 错误。此时请改用 `cpu` 运行或重新安装带 CUDA 的 PyTorch。
 
-如果选择 `cpu` 运行，但导出音频时收到 `AttributeError: 'NoneType' object has no attribute 'write'`，通常是因为所安装的 `torchaudio` 版本缺少编码器支持。可以另行安装 `soundfile` 或使用官方提供的完整 `torchaudio` 轮子以解决该问题。
+若导出音频时收到 `AttributeError: 'NoneType' object has no attribute 'write'`，通常是因为 `torchaudio` 缺少编码器支持。本仓库已在 `requirements.txt` 中包含 `soundfile`，或者可使用官方提供的完整 `torchaudio` 轮子解决该问题。
 
 ## 使用
 

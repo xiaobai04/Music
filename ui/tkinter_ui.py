@@ -9,6 +9,10 @@ import platform
 import sounddevice as sd
 import torch
 import torchaudio
+try:
+    import soundfile as sf
+except Exception:
+    sf = None
 
 from utils.settings import load_settings, save_settings
 from utils.audio_utils import resample_audio
@@ -616,12 +620,22 @@ class PlayerApp:
                          daemon=True).start()
 
     def save_audio_file(self, path, data, sr):
+        error = None
         try:
             tensor = torch.from_numpy(data.T)
             torchaudio.save(path, tensor, sr)
-            self.lyrics_box.insert("end", f"✅ 已导出：{os.path.basename(path)}\n")
         except Exception as e:
-            messagebox.showerror("导出错误", str(e))
+            error = e
+            if sf is not None:
+                try:
+                    sf.write(path, data, sr)
+                    error = None
+                except Exception as e2:
+                    error = e2
+        if error is None:
+            self.lyrics_box.insert("end", f"✅ 已导出：{os.path.basename(path)}\n")
+        else:
+            messagebox.showerror("导出错误", str(error))
 
     def get_selected_mic_index(self):
         """Return the sounddevice index for the selected microphone."""
