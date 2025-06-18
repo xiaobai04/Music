@@ -43,7 +43,14 @@ class PlayerApp:
         if platform.system() == "Windows":
             for idx, api in enumerate(sd.query_hostapis()):
                 if "WASAPI" in api.get("name", ""):
-                    sd.default.hostapi = idx
+                    try:
+                        sd.default.hostapi = idx
+                    except AttributeError:
+                        # `sd.default.hostapi` became read-only in
+                        # newer versions of sounddevice.  Setting the
+                        # default device still ensures the WASAPI host
+                        # is used where possible.
+                        pass
                     in_dev = api.get("default_input_device", -1)
                     out_dev = api.get("default_output_device", -1)
                     cur_in, cur_out = sd.default.device
