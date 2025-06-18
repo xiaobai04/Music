@@ -8,4 +8,5 @@
   "mic_enabled": false,
   "vocal_volume": 1.0,
   "accomp_volume": 1.0
+  ,"queue": []
 }
