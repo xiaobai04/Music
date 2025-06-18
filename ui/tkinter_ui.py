@@ -113,7 +113,7 @@ class PlayerApp:
         self.file_listbox.pack(fill="both", expand=True)
         self.file_listbox.bind("<Double-Button-1>", self.on_song_double_click)
 
-        tk.Button(left_frame, text="加入播放队列", command=self.add_to_queue,
+        tk.Button(left_frame, text="加入播放列表", command=self.add_to_queue,
                   font=("Microsoft YaHei", 10)).pack(pady=5)
 
         if self.music_folder and os.path.isdir(self.music_folder):
@@ -239,9 +239,16 @@ class PlayerApp:
 
         queue_frame = tk.Frame(right_frame)
         queue_frame.pack(fill="x", padx=30, pady=5)
-        tk.Label(queue_frame, text="待播列表", font=("Microsoft YaHei", 11)).pack(anchor="w")
-        self.queue_listbox = tk.Listbox(queue_frame, height=5, font=("Microsoft YaHei", 10))
-        self.queue_listbox.pack(fill="both", expand=True)
+        self.toggle_queue_button = tk.Button(queue_frame, text="显示待播列表", command=self.toggle_queue,
+                                             font=("Microsoft YaHei", 11))
+        self.toggle_queue_button.pack(anchor="w")
+        self.queue_content = tk.Frame(queue_frame)
+        self.queue_list_frame = tk.Frame(self.queue_content)
+        self.queue_list_frame.pack(fill="both", expand=True)
+        self.clear_queue_btn = tk.Button(self.queue_content, text="清空列表", command=self.clear_queue,
+                                         font=("Microsoft YaHei", 10))
+        self.clear_queue_btn.pack(pady=2)
+        self.queue_visible = False
         self.update_queue_listbox()
 
         self.lyrics_box = tk.Text(right_frame, font=("Microsoft YaHei", 14))
@@ -274,18 +281,43 @@ class PlayerApp:
             self.file_listbox.insert(tk.END, os.path.basename(f))
 
     def update_queue_listbox(self):
-        self.queue_listbox.delete(0, tk.END)
+        for child in self.queue_list_frame.winfo_children():
+            child.destroy()
         if not self.future_queue:
-            self.queue_listbox.insert(tk.END, "(空)")
+            tk.Label(self.queue_list_frame, text="(空)",
+                     font=("Microsoft YaHei", 10)).pack()
         else:
-            for p in self.future_queue:
-                self.queue_listbox.insert(tk.END, os.path.basename(p))
+            for idx, p in enumerate(self.future_queue):
+                row = tk.Frame(self.queue_list_frame)
+                row.pack(fill="x")
+                tk.Label(row, text=os.path.basename(p), font=("Microsoft YaHei", 10))\
+                    .pack(side=tk.LEFT, fill="x", expand=True)
+                tk.Button(row, text="删除",
+                          command=lambda i=idx: self.remove_from_queue(i),
+                          font=("Microsoft YaHei", 9)).pack(side=tk.RIGHT)
 
     def clear_queue(self):
         if self.future_queue:
             self.future_queue.clear()
             self.update_queue_listbox()
             self.persist_settings()
+
+    def remove_from_queue(self, index):
+        if 0 <= index < len(self.future_queue):
+            removed = self.future_queue.pop(index)
+            self.lyrics_box.insert("end", f"❌ 已移除：{os.path.basename(removed)}\n")
+            self.update_queue_listbox()
+            self.persist_settings()
+
+    def toggle_queue(self):
+        if self.queue_visible:
+            self.queue_content.pack_forget()
+            self.queue_visible = False
+            self.toggle_queue_button.config(text="显示待播列表")
+        else:
+            self.queue_content.pack(fill="x", pady=2)
+            self.queue_visible = True
+            self.toggle_queue_button.config(text="隐藏待播列表")
 
     def search_songs(self):
         query = self.search_var.get().lower()
