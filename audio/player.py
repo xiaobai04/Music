@@ -84,6 +84,10 @@ class AudioPlayer:
         if self.mic_enabled and self.mic_device is not None:
             self.start_mic(self.mic_device)
         try:
+            sd.check_output_settings(device=self.output_device,
+                                    samplerate=self.sample_rate,
+                                    channels=self.channels,
+                                    dtype="float32")
             self.stream = sd.OutputStream(
                 samplerate=self.sample_rate,
                 channels=self.channels,
@@ -95,10 +99,14 @@ class AudioPlayer:
             )
             self.stream.start()
         except Exception:
+            # If specified device fails, try default and then iterate all devices
             if self.output_device is not None:
-                # Fallback to system default if the selected device fails
                 self.output_device = None
                 try:
+                    sd.check_output_settings(device=None,
+                                            samplerate=self.sample_rate,
+                                            channels=self.channels,
+                                            dtype="float32")
                     self.stream = sd.OutputStream(
                         samplerate=self.sample_rate,
                         channels=self.channels,
@@ -109,11 +117,39 @@ class AudioPlayer:
                         device=self.output_device,
                     )
                     self.stream.start()
+                    return
                 except Exception:
                     self.stream = None
-                    self.playing = False
-                    self.stop_mic()
-                    raise
+
+            # Search for any working output device
+            for idx, info in enumerate(sd.query_devices()):
+                if info.get("max_output_channels", 0) <= 0:
+                    continue
+                try:
+                    sd.check_output_settings(device=idx,
+                                            samplerate=self.sample_rate,
+                                            channels=self.channels,
+                                            dtype="float32")
+                    self.stream = sd.OutputStream(
+                        samplerate=self.sample_rate,
+                        channels=self.channels,
+                        blocksize=self.blocksize,
+                        dtype="float32",
+                        callback=self._callback,
+                        latency=self.latency,
+                        device=idx,
+                    )
+                    self.stream.start()
+                    self.output_device = idx
+                    break
+                except Exception:
+                    self.stream = None
+                    continue
+
+            if self.stream is None:
+                self.playing = False
+                self.stop_mic()
+                raise
 
     def pause(self):
         with self.lock:

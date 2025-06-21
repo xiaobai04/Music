@@ -55,4 +55,10 @@ pyinstaller --onefile --add-data "user_settings.json:." main.py
 
 生成的文件位于 `dist/` 目录。`--add-data` 选项可确保 `user_settings.json` 与可执行文件位于同一目录，便于保存用户偏好。
 
+## 故障排除
+
+如果在启动播放时出现 `Error starting stream: Unanticipated host error` 或类似 WDM-KS 错误，通常是所选输出设备或采样率与系统不兼容。可尝试在界面中选择 `默认` 输出设备，或更换声卡驱动。如果问题仍然存在，可删除 `user_settings.json` 重新启动程序以恢复默认配置。
+
+在极少数情况下，系统默认设备仍无法正常工作。此时可依次尝试列表中的其他输出设备，或在命令行执行 `python -m sounddevice` 查看可用设备编号，然后在界面中选择对应设备。
+
 
