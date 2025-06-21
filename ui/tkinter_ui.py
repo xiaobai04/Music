@@ -123,7 +123,7 @@ class PlayerApp:
 
         # 1. 选择音乐文件夹
         ttk.Button(left_frame, text="选择音乐文件夹",
-                command=self.choose_folder, bootstyle="primary-outline")\
+                command=self.choose_folder, bootstyle="info-outline")\
             .grid(row=0, column=0, sticky="ew", pady=(0, 8))
 
         # 2. 搜索行
@@ -513,7 +513,13 @@ class PlayerApp:
             self.player.set_mic_volume(self.mic_volume.get())
             self.player.set_vocal_volume(self.vocal_volume.get())
             self.player.set_accomp_volume(self.accomp_volume.get())
-            self.player.play()
+            try:
+                self.player.play()
+            except Exception as e:
+                messagebox.showerror("音频设备错误", str(e))
+                self.player.stop()
+                self.player = None
+                return
             if self.audio_path in self.progress_map:
                 self.player.seek_to(self.progress_map[self.audio_path])
 
@@ -618,7 +624,13 @@ class PlayerApp:
             self.player.set_mic_volume(self.mic_volume.get())
             self.player.set_vocal_volume(self.vocal_volume.get())
             self.player.set_accomp_volume(self.accomp_volume.get())
-            self.player.play()
+            try:
+                self.player.play()
+            except Exception as e:
+                messagebox.showerror("音频设备错误", str(e))
+                self.player.stop()
+                self.player = None
+                return
             self.current_audio_data = (index, vocals, accomp, sr)
 
             lrc_path = os.path.splitext(self.audio_path)[0] + ".lrc"
