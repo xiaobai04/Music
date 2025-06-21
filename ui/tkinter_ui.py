@@ -32,6 +32,15 @@ class PlayerApp:
 
         # Use a modern ttk theme provided by ttkbootstrap
         style = ttkb.Style()
+        self.style = style
+
+        settings = load_settings()
+
+        self.theme_choice = tk.StringVar(value=settings.get("theme", "flatly"))
+        self.style.theme_use(self.theme_choice.get())
+        self.theme_choice.trace_add("write", lambda *a: self.style.theme_use(self.theme_choice.get()))
+        self.language_choice = tk.StringVar(value=settings.get("language", "中文"))
+        self.progress_map = dict(settings.get("progress", {}))
 
         # Prefer low-latency devices when available
         sd.default.latency = "low"
@@ -60,8 +69,6 @@ class PlayerApp:
 
         self.audio_path = None
         self.player = None
-
-        settings = load_settings()
         self.device_choice = tk.StringVar(value=settings.get("device", "cuda"))
         self.play_mode = tk.StringVar(value=settings.get("play_mode", "顺序"))
         self.music_folder = settings.get("music_folder", "")
@@ -90,7 +97,25 @@ class PlayerApp:
         file_menu.add_separator()
         file_menu.add_command(label="退出", command=self.on_close)
         menu.add_cascade(label="文件", menu=file_menu)
+
+        theme_menu = tk.Menu(menu, tearoff=0)
+        theme_menu.add_radiobutton(label="浅色", variable=self.theme_choice, value="flatly")
+        theme_menu.add_radiobutton(label="暗色", variable=self.theme_choice, value="darkly")
+        menu.add_cascade(label="外观", menu=theme_menu)
+
+        lang_menu = tk.Menu(menu, tearoff=0)
+        lang_menu.add_radiobutton(label="中文", variable=self.language_choice, value="中文")
+        lang_menu.add_radiobutton(label="English", variable=self.language_choice, value="English")
+        menu.add_cascade(label="语言", menu=lang_menu)
+
         root.config(menu=menu)
+
+        # Global key bindings
+        root.bind('<space>', lambda e: self.toggle_pause())
+        root.bind('<Left>', lambda e: self.seek_relative(-5))
+        root.bind('<Right>', lambda e: self.seek_relative(5))
+        root.bind('<Up>', lambda e: self.adjust_volume(0.05))
+        root.bind('<Down>', lambda e: self.adjust_volume(-0.05))
 
         paned = ttk.PanedWindow(root, orient=tk.HORIZONTAL)
         paned.pack(fill="both", expand=True)
@@ -202,6 +227,8 @@ class PlayerApp:
         self.mic_enabled.trace_add("write", lambda *args: self.toggle_mic())
         self.vocal_volume.trace_add("write", lambda *args: self.change_volume(self.vocal_volume.get()))
         self.accomp_volume.trace_add("write", lambda *args: self.change_accomp_volume(self.accomp_volume.get()))
+        self.theme_choice.trace_add("write", lambda *args: self.persist_settings())
+        self.language_choice.trace_add("write", lambda *args: self.persist_settings())
 
         control_frame = ttk.Frame(ctrl_tab)
         control_frame.pack(pady=5)
@@ -429,11 +456,13 @@ class PlayerApp:
                 self.lyrics_box.insert("end", "✅ 使用缓存播放\n")
             else:
                 self.lyrics_box.insert("end", "🎶 正在分离人声...\n")
+                self.show_toast("正在分离中...")
                 device = self.device_choice.get()
                 vocals, accomp, sr = separate_audio_in_memory(self.audio_path, device=device)
                 if self.session_id != current_session:
                     return
                 self.lyrics_box.insert("end", "✅ 分离完成，开始播放\n")
+                self.show_toast("分离完成")
 
             mic_dev = None if not self.mic_enabled.get() else self.get_selected_mic_index()
             out_dev = self.get_selected_output_index()
@@ -453,6 +482,8 @@ class PlayerApp:
             self.player.set_vocal_volume(self.vocal_volume.get())
             self.player.set_accomp_volume(self.accomp_volume.get())
             self.player.play()
+            if self.audio_path in self.progress_map:
+                self.player.seek_to(self.progress_map[self.audio_path])
 
             self.current_audio_data = (index, vocals, accomp, sr)
 
@@ -464,7 +495,7 @@ class PlayerApp:
                 self.lyrics_box.insert("end", "⚠️ 未找到歌词文件\n")
 
             self.progress_bar.config(state=tk.NORMAL)
-            self.progress_var.set(0)
+            self.progress_var.set(self.progress_map.get(self.audio_path, 0) * 100)
             if not self.update_loop_running:
                 threading.Thread(target=self.update_progress_loop, daemon=True).start()
 
@@ -566,7 +597,7 @@ class PlayerApp:
                 self.lyrics_box.insert("end", "⚠️ 无歌词\n")
 
             self.progress_bar.config(state=tk.NORMAL)
-            self.progress_var.set(0)
+            self.progress_var.set(self.progress_map.get(self.audio_path, 0) * 100)
             if not self.update_loop_running:
                 threading.Thread(target=self.update_progress_loop, daemon=True).start()
 
@@ -622,6 +653,28 @@ class PlayerApp:
                 self.player.pause()
                 self.pause_button.config(text="▶ 继续")
 
+    def seek_relative(self, seconds):
+        if self.player:
+            total = self.player.num_frames / self.player.sample_rate
+            new_time = self.player.get_current_time() + seconds
+            new_time = max(0.0, min(new_time, total))
+            self.player.seek_to(new_time / total)
+            self.progress_var.set((new_time / total) * 100)
+
+    def adjust_volume(self, delta):
+        v = min(1.0, max(0.0, self.vocal_volume.get() + delta))
+        a = min(1.0, max(0.0, self.accomp_volume.get() + delta))
+        self.vocal_volume.set(v)
+        self.accomp_volume.set(a)
+
+    def show_toast(self, message):
+        try:
+            from ttkbootstrap.toast import ToastNotification
+            toast = ToastNotification(title="提示", message=message, duration=2000, bootstyle="info")
+            toast.show_toast()
+        except Exception:
+            messagebox.showinfo("提示", message)
+
     def change_volume(self, val):
         if self.player:
             self.player.set_vocal_volume(float(val))
@@ -643,6 +696,7 @@ class PlayerApp:
             mic_dev = self.get_selected_mic_index()
             try:
                 self.player.set_mic_enabled(True, mic_dev)
+                self.show_toast("已切换麦克风")
             except Exception as e:
                 messagebox.showerror("麦克风错误", str(e))
                 self.mic_enabled.set(False)
@@ -667,6 +721,7 @@ class PlayerApp:
             out_dev = self.get_selected_output_index()
             try:
                 self.player.change_output_device(out_dev)
+                self.show_toast("已切换输出设备")
             except Exception as e:
                 messagebox.showerror("输出设备错误", str(e))
 
@@ -681,6 +736,8 @@ class PlayerApp:
             if not self.dragging:
                 self.progress_var.set(self.player.get_progress() * 100)
             self.time_label.config(text=f"{self.format_time(current)} / {self.format_time(total)}")
+            if self.audio_path:
+                self.progress_map[self.audio_path] = self.player.get_progress()
             time.sleep(0.2)
         self.update_loop_running = False
 
@@ -688,6 +745,8 @@ class PlayerApp:
         if self.player:
             percent = self.progress_var.get() / 100
             self.player.seek_to(percent)
+            if self.audio_path:
+                self.progress_map[self.audio_path] = percent
         self.dragging = False
 
     def format_time(self, seconds):
@@ -762,10 +821,15 @@ class PlayerApp:
             "vocal_volume": self.vocal_volume.get(),
             "accomp_volume": self.accomp_volume.get(),
             "queue": self.future_queue,
+            "theme": self.theme_choice.get(),
+            "language": self.language_choice.get(),
+            "progress": self.progress_map,
         }
         save_settings(settings)
 
     def on_close(self):
+        if self.player and self.audio_path:
+            self.progress_map[self.audio_path] = self.player.get_progress()
         self.persist_settings()
         if self.player:
             self.player.stop()

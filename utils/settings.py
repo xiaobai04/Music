@@ -15,7 +15,10 @@ DEFAULT_SETTINGS = {
     "mic_enabled": False,
     "vocal_volume": 1.0,
     "accomp_volume": 1.0,
-    "queue": []
+    "queue": [],
+    "theme": "flatly",
+    "language": "中文",
+    "progress": {}
 }
 
 def load_settings():
