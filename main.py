@@ -1,8 +1,8 @@
 # main.py
 from ui.tkinter_ui import PlayerApp
-import tkinter as tk
+import ttkbootstrap as ttkb
 
 if __name__ == "__main__":
-    root = tk.Tk()
+    root = ttkb.Window(themename="flatly")
     app = PlayerApp(root)
     root.mainloop()

@@ -21,7 +21,7 @@ pip install -r requirements.txt
 ```
 
 `requirements.txt` 已包含 `torch`、`torchaudio`、`demucs`、`sounddevice`、
-`numpy` 和 `soundfile` 等主要依赖。安装完成后即可运行本程序。
+`numpy`、`soundfile` 以及 `ttkbootstrap` 等主要依赖。安装完成后即可运行本程序。
 
 ### 额外依赖
 
