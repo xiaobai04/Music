@@ -462,6 +462,9 @@ class PlayerApp:
         if not index:
             return
         self.auto_next_enabled = False  # 禁止自动续播
+        if self.player:
+            self.player.stop()
+            self.player = None
         self.current_index = index[0]
         threading.Thread(target=lambda: self.play_song(self.current_index), daemon=True).start()
 
@@ -483,48 +486,57 @@ class PlayerApp:
             path = self.play_history.pop()
             if path in self.music_files:
                 prev_index = self.music_files.index(path)
+                if self.player:
+                    self.player.stop()
+                    self.player = None
                 self.current_index = prev_index
                 if self.prev_audio_data and self.prev_audio_data[0] == prev_index:
                     _, vocals, accomp, sr = self.prev_audio_data
                     self.prev_audio_data = None
                     threading.Thread(
-                        target=lambda: self.play_song(prev_index, (vocals, accomp, sr), update_history=False),
+                        target=lambda: self.play_song(prev_index, (vocals, accomp, sr), resume=False),
                         daemon=True
                     ).start()
                 else:
-                    threading.Thread(target=lambda: self.play_song(prev_index, update_history=False), daemon=True).start()
+                    threading.Thread(target=lambda: self.play_song(prev_index, resume=False), daemon=True).start()
                 return
         prev_index = self.get_prev_index()
         if prev_index is None:
             return
+        if self.player:
+            self.player.stop()
+            self.player = None
         self.current_index = prev_index
         if self.prev_audio_data and self.prev_audio_data[0] == prev_index:
             _, vocals, accomp, sr = self.prev_audio_data
             self.prev_audio_data = None
             threading.Thread(
-                target=lambda: self.play_song(prev_index, (vocals, accomp, sr), update_history=False),
+                target=lambda: self.play_song(prev_index, (vocals, accomp, sr), resume=False),
                 daemon=True
             ).start()
         else:
-            threading.Thread(target=lambda: self.play_song(prev_index, update_history=False), daemon=True).start()
+            threading.Thread(target=lambda: self.play_song(prev_index, resume=False), daemon=True).start()
 
     def play_next_song_manual(self):
         self.auto_next_enabled = False  # 禁止自动续播
-        next_index = self.get_next_index()
+        next_index = self.get_next_index(queue_only=True)
         if next_index is not None:
+            if self.player:
+                self.player.stop()
+                self.player = None
             self.current_index = next_index
             if self.next_audio_data and self.next_audio_data[0] == next_index:
                 _, vocals, accomp, sr = self.next_audio_data
                 self.next_audio_data = None
                 threading.Thread(
-                    target=lambda: self.play_song(next_index, (vocals, accomp, sr)),
+                    target=lambda: self.play_song(next_index, (vocals, accomp, sr), resume=False),
                     daemon=True
                 ).start()
             else:
-                threading.Thread(target=lambda: self.play_song(next_index), daemon=True).start()
+                threading.Thread(target=lambda: self.play_song(next_index, resume=False), daemon=True).start()
 
 
-    def play_song(self, index, preloaded=None, update_history=True):
+    def play_song(self, index, preloaded=None, update_history=True, resume=True):
         if not self.play_lock.acquire(blocking=False):
             return  # 正在播放时不重复执行
 
@@ -589,8 +601,11 @@ class PlayerApp:
                 self.player.stop()
                 self.player = None
                 return
-            if self.audio_path in self.progress_map:
-                self.player.seek_to(self.progress_map[self.audio_path])
+            if resume:
+                if self.audio_path in self.progress_map:
+                    self.player.seek_to(self.progress_map[self.audio_path])
+            else:
+                self.progress_map[self.audio_path] = 0
 
             self.current_audio_data = (index, vocals, accomp, sr)
 
@@ -602,7 +617,11 @@ class PlayerApp:
                 self.lyrics_box.insert("end", "⚠️ 未找到歌词文件\n")
 
             self.progress_bar.config(state=tk.NORMAL)
-            self.progress_var.set(self.progress_map.get(self.audio_path, 0) * 100)
+            if resume:
+                progress = self.progress_map.get(self.audio_path, 0)
+            else:
+                progress = 0
+            self.progress_var.set(progress * 100)
             if not self.update_loop_running:
                 threading.Thread(target=self.update_progress_loop, daemon=True).start()
 
@@ -719,7 +738,7 @@ class PlayerApp:
             threading.Thread(target=lambda: self.preload_prev_song(self.session_id), daemon=True).start()
 
 
-    def get_next_index(self, peek=False):
+    def get_next_index(self, peek=False, queue_only=False):
         if not self.music_files:
             return None
         if self.future_queue:
@@ -730,6 +749,8 @@ class PlayerApp:
                 self.persist_settings()
             if path in self.music_files:
                 return self.music_files.index(path)
+        if queue_only:
+            return None
         mode = self.play_mode.get()
         if mode == "顺序":
             return self.current_index + 1 if self.current_index + 1 < len(self.music_files) else None
