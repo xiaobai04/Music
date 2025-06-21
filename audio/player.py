@@ -106,7 +106,12 @@ class AudioPlayer:
         self.playing = False
         self.paused = False
         if self.stream:
-            self.stream.stop()
+            try:
+                # Abort to immediately halt playback and avoid leftover audio
+                self.stream.abort()
+            except Exception:
+                # Fall back to stop if abort is unavailable
+                self.stream.stop()
             self.stream.close()
             self.stream = None
         if self.mic_stream:
