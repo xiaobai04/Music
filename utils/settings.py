@@ -16,6 +16,7 @@ DEFAULT_SETTINGS = {
     "vocal_volume": 1.0,
     "accomp_volume": 1.0,
     "queue": [],
+    "history": [],
     "theme": "flatly",
     "language": "中文",
     "progress": {}
