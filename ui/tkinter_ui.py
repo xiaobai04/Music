@@ -181,22 +181,81 @@ class PlayerApp:
         row1 = ttk.Frame(audio_frame)
         row1.pack(pady=4)
         ttk.Label(row1, text="分离方式：").pack(side="left", padx=4)
-        tk.OptionMenu(row1, self.device_choice, "cpu", "cuda").pack(side="left", padx=4)
+        option_menu1 = tk.OptionMenu(row1, self.device_choice, "cpu", "cuda")
+        option_menu1.config(
+            bg="#3498DB",        # 背景色（淡蓝色）
+            fg="white",          # 字体颜色
+            activebackground="#48A2DE",
+            activeforeground="white",
+            highlightthickness=0,
+            relief="flat"
+        )
+        option_menu1["menu"].config(
+            bg="white",          # 下拉菜单背景
+            fg="black"           # 下拉菜单文字颜色
+        )
+        option_menu1.pack(side="left", padx=4)
+
         ttk.Label(row1, text="播放模式：").pack(side="left", padx=4)
-        tk.OptionMenu(row1, self.play_mode, "顺序", "循环", "随机").pack(side="left", padx=4)
+        option_menu2 = tk.OptionMenu(row1, self.play_mode, "顺序", "循环", "随机")
+        option_menu2.config(
+            bg="#3498DB",        # 背景色（淡蓝色）
+            fg="white",          # 字体颜色
+            activebackground="#48A2DE",
+            activeforeground="white",
+            highlightthickness=0,
+            relief="flat"
+        )
+        option_menu2["menu"].config(
+            bg="white",          # 下拉菜单背景
+            fg="black"           # 下拉菜单文字颜色
+        )
+        option_menu2.pack(side="left", padx=4)
         ttk.Label(row1, text="输出设备：").pack(side="left", padx=4)
-        tk.OptionMenu(row1, self.output_device, *output_devs).pack(side="left", padx=4)
+        option_menu3 = tk.OptionMenu(row1, self.output_device, *output_devs)
+        option_menu3.config(
+            bg="#3498DB",        # 背景色（淡蓝色）
+            fg="white",          # 字体颜色
+            activebackground="#48A2DE",
+            activeforeground="white",
+            highlightthickness=0,
+            relief="flat"
+        )
+        option_menu3["menu"].config(
+            bg="white",          # 下拉菜单背景
+            fg="black"           # 下拉菜单文字颜色
+        )
+        option_menu3.pack(side="left", padx=4)
 
         # --- 行3：麦克风 + 音量 ---
         row2 = ttk.Frame(audio_frame)
         row2.pack(pady=4)
         ttk.Label(row2, text="麦克风：").pack(side="left", padx=4)
-        tk.OptionMenu(row2, self.mic_device, *input_devs).pack(side="left", padx=4)
+        option_menu4 = tk.OptionMenu(row2, self.mic_device, *input_devs)
+        option_menu4.config(
+            bg="#3498DB",        # 背景色（淡蓝色）
+            fg="white",          # 字体颜色
+            activebackground="#48A2DE",
+            activeforeground="white",
+            highlightthickness=0,
+            relief="flat"
+        )
+        option_menu4["menu"].config(
+            bg="white",          # 下拉菜单背景
+            fg="black"           # 下拉菜单文字颜色
+        )
+        option_menu4.pack(side="left", padx=4)
         tk.Checkbutton(row2, text="启用麦克风", variable=self.mic_enabled,
                     font=("Microsoft YaHei", 10)).pack(side="left", padx=4)
-        tk.Scale(row2, from_=0, to=1, resolution=0.01, orient=tk.HORIZONTAL,
-                variable=self.mic_volume, label="麦克风音量", length=140,
-                font=("Microsoft YaHei", 10)).pack(side="left", padx=4)
+        mic_frame = ttk.Frame(row2)
+        mic_frame.pack(side="left", padx=4)
+
+        ttk.Label(mic_frame, text="麦克风音量", font=("Microsoft YaHei", 10)).pack(anchor="w")
+        ttkb.Scale(row2, from_=0, to=1, value=self.mic_volume.get(),
+           command=lambda val: self.mic_volume.set(float(val)),
+           length=140, variable=self.mic_volume,
+           bootstyle="info").pack(side="left", padx=4)
+
 
 
         # —— 状态持久化 —— #
@@ -231,35 +290,55 @@ class PlayerApp:
                                     bootstyle="secondary", width=3)
         self.next_button.pack(side=tk.LEFT, padx=5)
 
-        # 人声 / 伴奏 音量
-        self.vol_slider = tk.Scale(ctrl_tab, from_=0, to=1, resolution=0.01,
-                                orient=tk.HORIZONTAL, label="🎤 人声 100%",
-                                command=self.change_volume,
-                                variable=self.vocal_volume,
-                                font=("Microsoft YaHei", 11))
-        self.vol_slider.grid(row=3, column=0, sticky="ew", padx=30)
-        self.vol_slider.config(label=f"🎤 人声 {int(self.vocal_volume.get()*100)}%")
+        # 人声音量滑块（使用 ttkb + 手动标签）
+        self.vocal_frame = ttk.Frame(ctrl_tab)
+        self.vocal_frame.grid(row=3, column=0, sticky="ew", padx=30)
 
-        self.accomp_slider = tk.Scale(ctrl_tab, from_=0, to=1, resolution=0.01,
-                                    orient=tk.HORIZONTAL, label="🎶 伴奏 100%",
-                                    command=self.change_accomp_volume,
-                                    variable=self.accomp_volume,
+        self.vocal_label = ttk.Label(self.vocal_frame,
+                                    text=f"🎤 人声 {int(self.vocal_volume.get()*100)}%",
                                     font=("Microsoft YaHei", 11))
-        self.accomp_slider.grid(row=4, column=0, sticky="ew", padx=30)
-        self.accomp_slider.config(label=f"🎶 伴奏 {int(self.accomp_volume.get()*100)}%")
+        self.vocal_label.pack(anchor="w")
+
+        self.vol_slider = ttkb.Scale(self.vocal_frame, from_=0, to=1,
+                                    command=self.change_volume,
+                                    variable=self.vocal_volume,
+                                    length=300, bootstyle="info")  # 蓝色滑块
+        self.vol_slider.pack(fill="x")
+
+        # 伴奏音量滑块
+        self.accomp_frame = ttk.Frame(ctrl_tab)
+        self.accomp_frame.grid(row=4, column=0, sticky="ew", padx=30)
+
+        self.accomp_label = ttk.Label(self.accomp_frame,
+                                    text=f"🎶 伴奏 {int(self.accomp_volume.get()*100)}%",
+                                    font=("Microsoft YaHei", 11))
+        self.accomp_label.pack(anchor="w")
+
+        self.accomp_slider = ttkb.Scale(self.accomp_frame, from_=0, to=1,
+                                        command=self.change_accomp_volume,
+                                        variable=self.accomp_volume,
+                                        length=300, bootstyle="info")
+        self.accomp_slider.pack(fill="x")
+
 
         # 进度条 + 时间
         progress_row = ttk.Frame(ctrl_tab)
         progress_row.grid(row=5, column=0, sticky="ew", padx=30, pady=6)
         progress_row.columnconfigure(0, weight=1)
+
         ttk.Label(progress_row, text="播放进度").grid(row=0, column=0, sticky="w")
-        self.progress_var  = tk.DoubleVar()
-        self.progress_bar  = ttk.Scale(progress_row, from_=0, to=100,
-                                    orient=tk.HORIZONTAL, variable=self.progress_var)
+
+        self.progress_var = tk.DoubleVar()
+        self.progress_bar = ttkb.Scale(progress_row, from_=0, to=100,
+                                        orient=tk.HORIZONTAL,
+                                        variable=self.progress_var,
+                                        length=400,
+                                        bootstyle="info")  # 蓝色风格
         self.progress_bar.grid(row=1, column=0, sticky="ew")
-        self.progress_bar.bind("<ButtonPress-1>",  self.start_drag)
+        self.progress_bar.bind("<ButtonPress-1>", self.start_drag)
         self.progress_bar.bind("<ButtonRelease-1>", self.on_seek)
 
+        # 播放时间标签
         self.time_label = ttk.Label(ctrl_tab, text="00:00 / 00:00",
                                     font=("Courier", 12, "bold"))
         self.time_label.grid(row=6, column=0, sticky="e", padx=30)
@@ -359,13 +438,14 @@ class PlayerApp:
 
     def toggle_queue(self):
         if self.queue_visible:
-            self.queue_content.pack_forget()
+            self.queue_content.grid_remove()
             self.queue_visible = False
             self.toggle_queue_button.config(text="显示待播列表")
         else:
-            self.queue_content.pack(fill="x", pady=2)
+            self.queue_content.grid(row=1, column=0, sticky="ew", pady=2)
             self.queue_visible = True
             self.toggle_queue_button.config(text="隐藏待播列表")
+
 
     def search_songs(self):
         query = self.search_var.get().lower()
@@ -693,13 +773,17 @@ class PlayerApp:
     def change_volume(self, val):
         if self.player:
             self.player.set_vocal_volume(float(val))
-        self.vol_slider.config(label=f"🎤 人声 {int(float(val)*100)}%")
+        # 实时更新标签
+        if hasattr(self, "vocal_label"):
+            self.vocal_label.config(text=f"🎤 人声 {int(float(val)*100)}%")
         self.persist_settings()
 
     def change_accomp_volume(self, val):
         if self.player:
             self.player.set_accomp_volume(float(val))
-        self.accomp_slider.config(label=f"🎶 伴奏 {int(float(val)*100)}%")
+        # 实时更新标签
+        if hasattr(self, "accomp_label"):
+            self.accomp_label.config(text=f"🎶 伴奏 {int(float(val)*100)}%")
         self.persist_settings()
 
     def change_mic_volume(self, *args):
@@ -851,3 +935,6 @@ class PlayerApp:
         if self.player:
             self.player.stop()
         self.root.destroy()
+
+
+    
