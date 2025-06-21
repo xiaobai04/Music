@@ -951,12 +951,36 @@ class PlayerApp:
             messagebox.showerror("导出错误", str(error))
 
     def get_selected_mic_index(self):
-        """Return the sounddevice index for the selected microphone."""
-        return self.input_device_map.get(self.mic_device.get())
+        """Return the valid sounddevice index for the selected microphone.
+
+        If the stored device index no longer exists, reset to the default
+        "无" option and return ``None``.
+        """
+        idx = self.input_device_map.get(self.mic_device.get())
+        if idx is not None:
+            try:
+                sd.query_devices(idx, "input")
+            except Exception:
+                self.mic_device.set("无")
+                self.persist_settings()
+                idx = None
+        return idx
 
     def get_selected_output_index(self):
-        """Return the sounddevice index for the selected output device."""
-        return self.output_device_map.get(self.output_device.get())
+        """Return the valid sounddevice index for the selected output device.
+
+        If the stored device index no longer exists, reset to the default
+        "默认" option and return ``None``.
+        """
+        idx = self.output_device_map.get(self.output_device.get())
+        if idx is not None:
+            try:
+                sd.query_devices(idx, "output")
+            except Exception:
+                self.output_device.set("默认")
+                self.persist_settings()
+                idx = None
+        return idx
 
     def persist_settings(self):
         settings = {
