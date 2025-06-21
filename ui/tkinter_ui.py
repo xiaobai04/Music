@@ -479,7 +479,7 @@ class PlayerApp:
         if not index:
             return
         path = self.music_files[index[0]]
-        # Store in arrival order but play in LIFO by popping from the end
+        # Store in arrival order and play in FIFO by popping from the front
         self.future_queue.append(path)
         self.lyrics_box.insert("end", f"✅ 已加入待播：{os.path.basename(path)}\n")
         self.update_queue_listbox()
@@ -751,7 +751,7 @@ class PlayerApp:
         if not self.music_files:
             return None
         if self.future_queue:
-            path = self.future_queue[-1] if peek else self.future_queue.pop()
+            path = self.future_queue[0] if peek else self.future_queue.pop(0)
             if not peek:
                 self.update_queue_listbox()
                 self.persist_settings()
