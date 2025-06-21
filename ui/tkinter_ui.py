@@ -87,14 +87,26 @@ class PlayerApp:
         self.future_queue = list(settings.get("queue", []))
         self.session_id = None
 
-        main_frame = tk.Frame(root)
-        main_frame.pack(fill="both", expand=True)
+        menu = tk.Menu(root)
+        file_menu = tk.Menu(menu, tearoff=0)
+        file_menu.add_command(label="选择音乐文件夹", command=self.choose_folder)
+        file_menu.add_separator()
+        file_menu.add_command(label="退出", command=self.on_close)
+        menu.add_cascade(label="文件", menu=file_menu)
+        root.config(menu=menu)
+
+        paned = ttk.PanedWindow(root, orient=tk.HORIZONTAL)
+        paned.pack(fill="both", expand=True)
+
+        left_frame = tk.Frame(paned)
+        right_frame = tk.Frame(paned)
+        paned.add(left_frame, weight=1)
+        paned.add(right_frame, weight=3)
 
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
         # 左侧文件列表
-        left_frame = tk.Frame(main_frame)
-        left_frame.pack(side=tk.LEFT, fill="both", expand=True, padx=10, pady=10)
+        left_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
         tk.Button(left_frame, text="选择音乐文件夹", command=self.choose_folder,
                   font=("Microsoft YaHei", 11, "bold")).pack(pady=5)
@@ -120,13 +132,19 @@ class PlayerApp:
             self.load_folder(self.music_folder)
 
         # 右侧控制面板
-        right_frame = tk.Frame(main_frame)
-        right_frame.pack(side=tk.RIGHT, fill="both", expand=True, padx=10, pady=10)
+        right_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-        self.current_file_label = tk.Label(right_frame, text="当前播放：", font=("Microsoft YaHei", 12, "bold"))
+        notebook = ttk.Notebook(right_frame)
+        ctrl_tab = tk.Frame(notebook)
+        lyric_tab = tk.Frame(notebook)
+        notebook.add(ctrl_tab, text="控制")
+        notebook.add(lyric_tab, text="歌词")
+        notebook.pack(fill="both", expand=True)
+
+        self.current_file_label = tk.Label(ctrl_tab, text="当前播放：", font=("Microsoft YaHei", 12, "bold"))
         self.current_file_label.pack(pady=5)
 
-        row1 = tk.Frame(right_frame)
+        row1 = tk.Frame(ctrl_tab)
         row1.pack()
         tk.Label(row1, text="分离方式：", font=("Microsoft YaHei", 11)).pack(side=tk.LEFT)
         tk.OptionMenu(row1, self.device_choice, "cpu", "cuda").pack(side=tk.LEFT, padx=5)
@@ -138,7 +156,7 @@ class PlayerApp:
         hostapis = sd.query_hostapis()
 
         # 输出设备
-        row2 = tk.Frame(right_frame)
+        row2 = tk.Frame(ctrl_tab)
         row2.pack()
         output_devs = []
         self.output_device_map.clear()
@@ -168,7 +186,7 @@ class PlayerApp:
             self.input_device_map["无"] = None
         if self.mic_device.get() not in input_devs:
             self.mic_device.set("无")
-        row3 = tk.Frame(right_frame)
+        row3 = tk.Frame(ctrl_tab)
         row3.pack()
         tk.Label(row3, text="麦克风：", font=("Microsoft YaHei", 11)).pack(side=tk.LEFT)
         tk.OptionMenu(row3, self.mic_device, *input_devs).pack(side=tk.LEFT, padx=5)
@@ -188,7 +206,7 @@ class PlayerApp:
         self.vocal_volume.trace_add("write", lambda *args: self.change_volume(self.vocal_volume.get()))
         self.accomp_volume.trace_add("write", lambda *args: self.change_accomp_volume(self.accomp_volume.get()))
 
-        control_frame = tk.Frame(right_frame)
+        control_frame = tk.Frame(ctrl_tab)
         control_frame.pack(pady=5)
 
         self.prev_button = tk.Button(control_frame, text="⏮ 上一首", command=self.play_previous_song,
@@ -203,14 +221,14 @@ class PlayerApp:
                                      font=("Microsoft YaHei", 11))
         self.next_button.pack(side=tk.LEFT, padx=5)
 
-        self.vol_slider = tk.Scale(right_frame, from_=0, to=1, resolution=0.01,
+        self.vol_slider = tk.Scale(ctrl_tab, from_=0, to=1, resolution=0.01,
                                    orient=tk.HORIZONTAL, label="人声音量",
                                    command=self.change_volume,
                                    variable=self.vocal_volume,
                                    font=("Microsoft YaHei", 11))
         self.vol_slider.pack(fill="x", padx=30)
 
-        self.accomp_slider = tk.Scale(right_frame, from_=0, to=1, resolution=0.01,
+        self.accomp_slider = tk.Scale(ctrl_tab, from_=0, to=1, resolution=0.01,
                                       orient=tk.HORIZONTAL, label="伴奏音量",
                                       command=self.change_accomp_volume,
                                       variable=self.accomp_volume,
@@ -218,7 +236,7 @@ class PlayerApp:
         self.accomp_slider.pack(fill="x", padx=30)
 
         self.progress_var = tk.DoubleVar()
-        progress_frame = tk.Frame(right_frame)
+        progress_frame = tk.Frame(ctrl_tab)
         progress_frame.pack(fill="x", padx=30, pady=10)
         tk.Label(progress_frame, text="播放进度", font=("Microsoft YaHei", 11)).pack(anchor="w")
         self.progress_bar = ttk.Scale(progress_frame, from_=0, to=100, orient=tk.HORIZONTAL,
@@ -227,17 +245,17 @@ class PlayerApp:
         self.progress_bar.bind("<ButtonPress-1>", self.start_drag)
         self.progress_bar.bind("<ButtonRelease-1>", self.on_seek)
 
-        self.time_label = tk.Label(right_frame, text="00:00 / 00:00", font=("Courier", 12, "bold"))
+        self.time_label = tk.Label(ctrl_tab, text="00:00 / 00:00", font=("Courier", 12, "bold"))
         self.time_label.pack()
 
-        export_frame = tk.Frame(right_frame)
+        export_frame = tk.Frame(ctrl_tab)
         export_frame.pack(pady=5)
         tk.Button(export_frame, text="导出人声", command=self.export_vocals,
                   font=("Microsoft YaHei", 10)).pack(side=tk.LEFT, padx=5)
         tk.Button(export_frame, text="导出伴奏", command=self.export_accompaniment,
                   font=("Microsoft YaHei", 10)).pack(side=tk.LEFT, padx=5)
 
-        queue_frame = tk.Frame(right_frame)
+        queue_frame = tk.Frame(ctrl_tab)
         queue_frame.pack(fill="x", padx=30, pady=5)
         self.toggle_queue_button = tk.Button(queue_frame, text="显示待播列表", command=self.toggle_queue,
                                              font=("Microsoft YaHei", 11))
@@ -251,7 +269,7 @@ class PlayerApp:
         self.queue_visible = False
         self.update_queue_listbox()
 
-        self.lyrics_box = tk.Text(right_frame, font=("Microsoft YaHei", 14))
+        self.lyrics_box = tk.Text(lyric_tab, font=("Microsoft YaHei", 14))
         self.lyrics_box.pack(fill="both", expand=True, pady=5)
 
         self.play_lock = threading.Lock()  # 防止重复播放
