@@ -479,7 +479,7 @@ class PlayerApp:
         if not index:
             return
         path = self.music_files[index[0]]
-        # Store in arrival order but play in LIFO by popping from the end
+        # Store in arrival order and play in FIFO by popping from the front
         self.future_queue.append(path)
         self.lyrics_box.insert("end", f"✅ 已加入待播：{os.path.basename(path)}\n")
         self.update_queue_listbox()
@@ -751,7 +751,7 @@ class PlayerApp:
         if not self.music_files:
             return None
         if self.future_queue:
-            path = self.future_queue[-1] if peek else self.future_queue.pop()
+            path = self.future_queue[0] if peek else self.future_queue.pop(0)
             if not peek:
                 self.update_queue_listbox()
                 self.persist_settings()
@@ -951,12 +951,36 @@ class PlayerApp:
             messagebox.showerror("导出错误", str(error))
 
     def get_selected_mic_index(self):
-        """Return the sounddevice index for the selected microphone."""
-        return self.input_device_map.get(self.mic_device.get())
+        """Return the valid sounddevice index for the selected microphone.
+
+        If the stored device index no longer exists, reset to the default
+        "无" option and return ``None``.
+        """
+        idx = self.input_device_map.get(self.mic_device.get())
+        if idx is not None:
+            try:
+                sd.query_devices(idx, "input")
+            except Exception:
+                self.mic_device.set("无")
+                self.persist_settings()
+                idx = None
+        return idx
 
     def get_selected_output_index(self):
-        """Return the sounddevice index for the selected output device."""
-        return self.output_device_map.get(self.output_device.get())
+        """Return the valid sounddevice index for the selected output device.
+
+        If the stored device index no longer exists, reset to the default
+        "默认" option and return ``None``.
+        """
+        idx = self.output_device_map.get(self.output_device.get())
+        if idx is not None:
+            try:
+                sd.query_devices(idx, "output")
+            except Exception:
+                self.output_device.set("默认")
+                self.persist_settings()
+                idx = None
+        return idx
 
     def persist_settings(self):
         settings = {
