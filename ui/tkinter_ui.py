@@ -130,8 +130,12 @@ class PlayerApp:
         # 左侧文件列表
         left_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-        ttk.Button(left_frame, text="选择音乐文件夹", command=self.choose_folder,
-                   bootstyle="primary-outline").pack(pady=5)
+        ttk.Button(
+            left_frame,
+            text="选择音乐文件夹",
+            command=self.choose_folder,
+            bootstyle="primary-outline",
+        ).pack(pady=(20, 5))
 
         search_frame = ttk.Frame(left_frame)
         search_frame.pack(pady=5, fill="x")
@@ -140,15 +144,30 @@ class PlayerApp:
                                      font=("Microsoft YaHei", 11))
         self.search_entry.pack(side=tk.LEFT, fill="x", expand=True)
         self.search_entry.bind("<Return>", lambda e: self.search_songs())
-        ttk.Button(search_frame, text="搜索", command=self.search_songs,
-                   bootstyle="secondary").pack(side=tk.LEFT, padx=5)
+        ttk.Button(
+            search_frame,
+            text="搜索",
+            command=self.search_songs,
+            bootstyle="secondary",
+        ).pack(side=tk.LEFT, padx=5)
+
+        ttk.Label(left_frame, text="🎵 音乐列表", font=("Microsoft YaHei", 11, "bold")).pack(
+            pady=(5, 0)
+        )
+        ttk.Separator(left_frame, orient="horizontal").pack(fill="x", pady=2)
 
         self.file_listbox = tk.Listbox(left_frame, font=("Microsoft YaHei", 11))
         self.file_listbox.pack(fill="both", expand=True)
         self.file_listbox.bind("<Double-Button-1>", self.on_song_double_click)
 
-        ttk.Button(left_frame, text="加入播放列表", command=self.add_to_queue,
-                   bootstyle="success").pack(pady=5)
+        bottom_frame = ttk.Frame(left_frame)
+        bottom_frame.pack(fill="x")
+        ttk.Button(
+            bottom_frame,
+            text="加入播放列表",
+            command=self.add_to_queue,
+            bootstyle="success",
+        ).pack(anchor="e", pady=5)
 
         # 右侧控制面板
         right_frame.pack(fill="both", expand=True, padx=10, pady=10)
@@ -163,8 +182,11 @@ class PlayerApp:
         self.current_file_label = ttk.Label(ctrl_tab, text="当前播放：", font=("Microsoft YaHei", 12, "bold"))
         self.current_file_label.pack(pady=5)
 
-        row1 = ttk.Frame(ctrl_tab)
-        row1.pack()
+        audio_frame = ttk.Labelframe(ctrl_tab, text="音频设置")
+        audio_frame.pack(fill="x", padx=5, pady=5)
+
+        row1 = ttk.Frame(audio_frame)
+        row1.pack(anchor="w", pady=2)
         ttk.Label(row1, text="分离方式：").pack(side=tk.LEFT)
         tk.OptionMenu(row1, self.device_choice, "cpu", "cuda").pack(side=tk.LEFT, padx=5)
         ttk.Label(row1, text="播放模式：").pack(side=tk.LEFT, padx=(20, 0))
@@ -175,8 +197,8 @@ class PlayerApp:
         hostapis = sd.query_hostapis()
 
         # 输出设备
-        row2 = ttk.Frame(ctrl_tab)
-        row2.pack()
+        row2 = ttk.Frame(audio_frame)
+        row2.pack(anchor="w", pady=2)
         output_devs = []
         self.output_device_map.clear()
         for i, dev in all_devices:
@@ -205,8 +227,8 @@ class PlayerApp:
             self.input_device_map["无"] = None
         if self.mic_device.get() not in input_devs:
             self.mic_device.set("无")
-        row3 = ttk.Frame(ctrl_tab)
-        row3.pack()
+        row3 = ttk.Frame(audio_frame)
+        row3.pack(anchor="w", pady=2)
         ttk.Label(row3, text="麦克风：").pack(side=tk.LEFT)
         tk.OptionMenu(row3, self.mic_device, *input_devs).pack(side=tk.LEFT, padx=5)
         tk.Checkbutton(row3, text="启用麦克风", variable=self.mic_enabled,
@@ -230,35 +252,61 @@ class PlayerApp:
         control_frame = ttk.Frame(ctrl_tab)
         control_frame.pack(pady=5)
 
-        self.prev_button = ttk.Button(control_frame, text="⏮ 上一首",
-                                      command=self.play_previous_song,
-                                      bootstyle="secondary")
+        self.prev_button = ttk.Button(
+            control_frame,
+            text="⏮",
+            command=self.play_previous_song,
+            bootstyle="secondary",
+            width=3,
+        )
         self.prev_button.pack(side=tk.LEFT, padx=5)
 
-        self.pause_button = ttk.Button(control_frame, text="⏸ 暂停",
-                                        command=self.toggle_pause,
-                                        state=tk.DISABLED,
-                                        bootstyle="warning")
+        self.pause_button = ttk.Button(
+            control_frame,
+            text="⏯",
+            command=self.toggle_pause,
+            state=tk.DISABLED,
+            bootstyle="warning",
+            width=3,
+        )
         self.pause_button.pack(side=tk.LEFT, padx=5)
 
-        self.next_button = ttk.Button(control_frame, text="⏭ 下一首",
-                                      command=self.play_next_song_manual,
-                                      bootstyle="secondary")
+        self.next_button = ttk.Button(
+            control_frame,
+            text="⏭",
+            command=self.play_next_song_manual,
+            bootstyle="secondary",
+            width=3,
+        )
         self.next_button.pack(side=tk.LEFT, padx=5)
 
-        self.vol_slider = tk.Scale(ctrl_tab, from_=0, to=1, resolution=0.01,
-                                   orient=tk.HORIZONTAL, label="人声音量",
-                                   command=self.change_volume,
-                                   variable=self.vocal_volume,
-                                   font=("Microsoft YaHei", 11))
+        self.vol_slider = tk.Scale(
+            ctrl_tab,
+            from_=0,
+            to=1,
+            resolution=0.01,
+            orient=tk.HORIZONTAL,
+            label="🎤 人声 100%",
+            command=self.change_volume,
+            variable=self.vocal_volume,
+            font=("Microsoft YaHei", 11),
+        )
         self.vol_slider.pack(fill="x", padx=30)
+        self.vol_slider.config(label=f"🎤 人声 {int(self.vocal_volume.get()*100)}%")
 
-        self.accomp_slider = tk.Scale(ctrl_tab, from_=0, to=1, resolution=0.01,
-                                      orient=tk.HORIZONTAL, label="伴奏音量",
-                                      command=self.change_accomp_volume,
-                                      variable=self.accomp_volume,
-                                      font=("Microsoft YaHei", 11))
+        self.accomp_slider = tk.Scale(
+            ctrl_tab,
+            from_=0,
+            to=1,
+            resolution=0.01,
+            orient=tk.HORIZONTAL,
+            label="🎶 伴奏 100%",
+            command=self.change_accomp_volume,
+            variable=self.accomp_volume,
+            font=("Microsoft YaHei", 11),
+        )
         self.accomp_slider.pack(fill="x", padx=30)
+        self.accomp_slider.config(label=f"🎶 伴奏 {int(self.accomp_volume.get()*100)}%")
 
         self.progress_var = tk.DoubleVar()
         progress_frame = ttk.Frame(ctrl_tab)
@@ -678,11 +726,13 @@ class PlayerApp:
     def change_volume(self, val):
         if self.player:
             self.player.set_vocal_volume(float(val))
+        self.vol_slider.config(label=f"🎤 人声 {int(float(val)*100)}%")
         self.persist_settings()
 
     def change_accomp_volume(self, val):
         if self.player:
             self.player.set_accomp_volume(float(val))
+        self.accomp_slider.config(label=f"🎶 伴奏 {int(float(val)*100)}%")
         self.persist_settings()
 
     def change_mic_volume(self, *args):
