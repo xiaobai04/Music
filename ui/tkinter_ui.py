@@ -478,7 +478,6 @@ class PlayerApp:
     def play_previous_song(self):
         if not self.music_files:
             return
-        self.clear_queue()
         prev_index = self.get_prev_index()
         if prev_index is None:
             return
@@ -495,7 +494,6 @@ class PlayerApp:
 
     def play_next_song_manual(self):
         self.auto_next_enabled = False  # 禁止自动续播
-        self.clear_queue()
         next_index = self.get_next_index()
         if next_index is not None:
             self.current_index = next_index
