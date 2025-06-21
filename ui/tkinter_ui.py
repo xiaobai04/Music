@@ -501,11 +501,11 @@ class PlayerApp:
                 if self.prev_audio_data and self.prev_audio_data[0] == prev_index:
                     _, vocals, accomp, sr = self.prev_audio_data
                     threading.Thread(
-                        target=lambda: self.play_song(prev_index, (vocals, accomp, sr), update_history=False, resume=False),
+                        target=lambda: self.play_song(prev_index, (vocals, accomp, sr), update_history=False, resume=False, keep_current_as_next=True),
                         daemon=True
                     ).start()
                 else:
-                    threading.Thread(target=lambda: self.play_song(prev_index, update_history=False, resume=False), daemon=True).start()
+                    threading.Thread(target=lambda: self.play_song(prev_index, update_history=False, resume=False, keep_current_as_next=True), daemon=True).start()
                 return
         prev_index = self.get_prev_index()
         if prev_index is None:
@@ -517,11 +517,11 @@ class PlayerApp:
         if self.prev_audio_data and self.prev_audio_data[0] == prev_index:
             _, vocals, accomp, sr = self.prev_audio_data
             threading.Thread(
-                target=lambda: self.play_song(prev_index, (vocals, accomp, sr), update_history=False, resume=False),
+                target=lambda: self.play_song(prev_index, (vocals, accomp, sr), update_history=False, resume=False, keep_current_as_next=True),
                 daemon=True
             ).start()
         else:
-            threading.Thread(target=lambda: self.play_song(prev_index, update_history=False, resume=False), daemon=True).start()
+            threading.Thread(target=lambda: self.play_song(prev_index, update_history=False, resume=False, keep_current_as_next=True), daemon=True).start()
 
     def play_next_song_manual(self):
         self.auto_next_enabled = False  # 禁止自动续播
@@ -542,7 +542,7 @@ class PlayerApp:
                 threading.Thread(target=lambda: self.play_song(next_index, resume=False), daemon=True).start()
 
 
-    def play_song(self, index, preloaded=None, update_history=True, resume=True):
+    def play_song(self, index, preloaded=None, update_history=True, resume=True, keep_current_as_next=False):
         if not self.play_lock.acquire(blocking=False):
             return  # 正在播放时不重复执行
 
@@ -560,6 +560,8 @@ class PlayerApp:
                 self.player.stop()
                 self.player = None
             if old_data:
+                if keep_current_as_next:
+                    self.next_audio_data = old_data
                 self.prev_audio_data = old_data
             self.current_audio_data = None
             self.current_index = index
