@@ -18,8 +18,7 @@ DEFAULT_SETTINGS = {
     "queue": [],
     "history": [],
     "theme": "flatly",
-    "language": "中文",
-    "progress": {}
+    "language": "中文"
 }
 
 def load_settings():
