@@ -607,6 +607,9 @@ class PlayerApp:
                 self.player.stop()
                 self.player = None
                 return
+            if self.player.output_device is None and out_dev is not None:
+                self.output_device.set("默认")
+                self.persist_settings()
             if resume:
                 if self.audio_path in self.progress_map:
                     self.player.seek_to(self.progress_map[self.audio_path])
@@ -729,6 +732,9 @@ class PlayerApp:
                 self.player.stop()
                 self.player = None
                 return
+            if self.player.output_device is None and out_dev is not None:
+                self.output_device.set("默认")
+                self.persist_settings()
             self.current_audio_data = (index, vocals, accomp, sr)
 
             lrc_path = os.path.splitext(self.audio_path)[0] + ".lrc"

@@ -83,16 +83,37 @@ class AudioPlayer:
         self.position = 0
         if self.mic_enabled and self.mic_device is not None:
             self.start_mic(self.mic_device)
-        self.stream = sd.OutputStream(
-            samplerate=self.sample_rate,
-            channels=self.channels,
-            blocksize=self.blocksize,
-            dtype='float32',
-            callback=self._callback,
-            latency=self.latency,
-            device=self.output_device
-        )
-        self.stream.start()
+        try:
+            self.stream = sd.OutputStream(
+                samplerate=self.sample_rate,
+                channels=self.channels,
+                blocksize=self.blocksize,
+                dtype="float32",
+                callback=self._callback,
+                latency=self.latency,
+                device=self.output_device,
+            )
+            self.stream.start()
+        except Exception:
+            if self.output_device is not None:
+                # Fallback to system default if the selected device fails
+                self.output_device = None
+                try:
+                    self.stream = sd.OutputStream(
+                        samplerate=self.sample_rate,
+                        channels=self.channels,
+                        blocksize=self.blocksize,
+                        dtype="float32",
+                        callback=self._callback,
+                        latency=self.latency,
+                        device=self.output_device,
+                    )
+                    self.stream.start()
+                except Exception:
+                    self.stream = None
+                    self.playing = False
+                    self.stop_mic()
+                    raise
 
     def pause(self):
         with self.lock:
