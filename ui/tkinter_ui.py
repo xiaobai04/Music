@@ -173,16 +173,18 @@ class PlayerApp:
         # 音频设置
         audio_frame = ttk.Labelframe(ctrl_tab, text="音频设置")
         audio_frame.grid(row=1, column=0, sticky="ew", padx=2, pady=2)
-        for i in range(2):
+        for i in range(6):
             audio_frame.columnconfigure(i, weight=1)
 
         # —— 分离方式 & 播放模式 —— #
         ttk.Label(audio_frame, text="分离方式：").grid(row=0, column=0, sticky="e", pady=2)
-        tk.OptionMenu(audio_frame, self.device_choice, "cpu", "cuda")\
+        ttkb.OptionMenu(audio_frame, self.device_choice, self.device_choice.get(),
+                        "cpu", "cuda", style="info.TMenubutton")\
             .grid(row=0, column=1, sticky="w", pady=2)
-        ttk.Label(audio_frame, text="播放模式：").grid(row=1, column=0, sticky="e", pady=2)
-        tk.OptionMenu(audio_frame, self.play_mode, "顺序", "循环", "随机")\
-            .grid(row=1, column=1, sticky="w", pady=2)
+        ttk.Label(audio_frame, text="播放模式：").grid(row=0, column=2, sticky="e", pady=2)
+        ttkb.OptionMenu(audio_frame, self.play_mode, self.play_mode.get(),
+                        "顺序", "循环", "随机", style="info.TMenubutton")\
+            .grid(row=0, column=3, sticky="w", pady=2)
 
         # —— 输出 / 输入设备 —— #
         self.output_device_map.clear()
@@ -201,9 +203,10 @@ class PlayerApp:
         if self.output_device.get() not in output_devs:
             self.output_device.set("默认")
 
-        ttk.Label(audio_frame, text="输出设备：").grid(row=2, column=0, sticky="e", pady=2)
-        tk.OptionMenu(audio_frame, self.output_device, *output_devs)\
-            .grid(row=2, column=1, sticky="w", pady=2)
+        ttk.Label(audio_frame, text="输出设备：").grid(row=0, column=4, sticky="e", pady=2)
+        ttkb.OptionMenu(audio_frame, self.output_device, self.output_device.get(),
+                        *output_devs, style="info.TMenubutton")\
+            .grid(row=0, column=5, sticky="w", pady=2)
 
         input_devs = []
         for i, dev in all_devices:
@@ -216,17 +219,18 @@ class PlayerApp:
         if self.mic_device.get() not in input_devs:
             self.mic_device.set("无")
 
-        ttk.Label(audio_frame, text="麦克风：").grid(row=3, column=0, sticky="e", pady=2)
-        tk.OptionMenu(audio_frame, self.mic_device, *input_devs)\
-            .grid(row=3, column=1, sticky="w", pady=2)
+        ttk.Label(audio_frame, text="麦克风：").grid(row=1, column=0, sticky="e", pady=2)
+        ttkb.OptionMenu(audio_frame, self.mic_device, self.mic_device.get(),
+                        *input_devs, style="info.TMenubutton")\
+            .grid(row=1, column=1, sticky="w", pady=2)
 
         tk.Checkbutton(audio_frame, text="启用麦克风", variable=self.mic_enabled,
-                    font=("Microsoft YaHei", 10))\
-            .grid(row=4, column=0, sticky="e", pady=2)
+                       font=("Microsoft YaHei", 10))\
+            .grid(row=1, column=2, sticky="w", pady=2)
         tk.Scale(audio_frame, from_=0, to=1, resolution=0.01, orient=tk.HORIZONTAL,
-                variable=self.mic_volume, label="麦克风音量", length=140,
-                font=("Microsoft YaHei", 10))\
-            .grid(row=4, column=1, sticky="w", pady=2)
+                 variable=self.mic_volume, label="麦克风音量", length=140,
+                 font=("Microsoft YaHei", 10))\
+            .grid(row=1, column=3, columnspan=3, sticky="w", pady=2)
 
         # —— 状态持久化 —— #
         self.device_choice.trace_add("write", lambda *_: self.persist_settings())
@@ -261,11 +265,18 @@ class PlayerApp:
         self.next_button.pack(side=tk.LEFT, padx=5)
 
         # 人声 / 伴奏 音量
-        self.vol_slider = tk.Scale(ctrl_tab, from_=0, to=1, resolution=0.01,
-                                orient=tk.HORIZONTAL, label="🎤 人声 100%",
-                                command=self.change_volume,
-                                variable=self.vocal_volume,
-                                font=("Microsoft YaHei", 11))
+        self.vol_slider = tk.Scale(
+            ctrl_tab,
+            from_=0,
+            to=1,
+            resolution=0.01,
+            orient=tk.HORIZONTAL,
+            label="🎤 人声 100%",
+            command=self.change_volume,
+            variable=self.vocal_volume,
+            font=("Microsoft YaHei", 11),
+            fg="lightblue",
+        )
         self.vol_slider.grid(row=3, column=0, sticky="ew", padx=30)
         self.vol_slider.config(label=f"🎤 人声 {int(self.vocal_volume.get()*100)}%")
 
