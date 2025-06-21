@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
+import ttkbootstrap as ttkb
 import threading
 import time
 import os
@@ -29,12 +30,8 @@ class PlayerApp:
         self.root.title("🎵 人声分离播放器")
         self.root.geometry("1200x720")
 
-        # Use a modern ttk theme
-        style = ttk.Style()
-        try:
-            style.theme_use("clam")
-        except Exception:
-            pass
+        # Use a modern ttk theme provided by ttkbootstrap
+        style = ttkb.Style()
 
         # Prefer low-latency devices when available
         sd.default.latency = "low"
@@ -98,8 +95,8 @@ class PlayerApp:
         paned = ttk.PanedWindow(root, orient=tk.HORIZONTAL)
         paned.pack(fill="both", expand=True)
 
-        left_frame = tk.Frame(paned)
-        right_frame = tk.Frame(paned)
+        left_frame = ttk.Frame(paned)
+        right_frame = ttk.Frame(paned)
         paned.add(left_frame, weight=1)
         paned.add(right_frame, weight=3)
 
@@ -108,25 +105,25 @@ class PlayerApp:
         # 左侧文件列表
         left_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-        tk.Button(left_frame, text="选择音乐文件夹", command=self.choose_folder,
-                  font=("Microsoft YaHei", 11, "bold")).pack(pady=5)
+        ttk.Button(left_frame, text="选择音乐文件夹", command=self.choose_folder,
+                   bootstyle="primary-outline").pack(pady=5)
 
-        search_frame = tk.Frame(left_frame)
+        search_frame = ttk.Frame(left_frame)
         search_frame.pack(pady=5, fill="x")
         self.search_var = tk.StringVar()
         self.search_entry = tk.Entry(search_frame, textvariable=self.search_var,
                                      font=("Microsoft YaHei", 11))
         self.search_entry.pack(side=tk.LEFT, fill="x", expand=True)
         self.search_entry.bind("<Return>", lambda e: self.search_songs())
-        tk.Button(search_frame, text="搜索", command=self.search_songs,
-                  font=("Microsoft YaHei", 10)).pack(side=tk.LEFT, padx=5)
+        ttk.Button(search_frame, text="搜索", command=self.search_songs,
+                   bootstyle="secondary").pack(side=tk.LEFT, padx=5)
 
         self.file_listbox = tk.Listbox(left_frame, font=("Microsoft YaHei", 11))
         self.file_listbox.pack(fill="both", expand=True)
         self.file_listbox.bind("<Double-Button-1>", self.on_song_double_click)
 
-        tk.Button(left_frame, text="加入播放列表", command=self.add_to_queue,
-                  font=("Microsoft YaHei", 10)).pack(pady=5)
+        ttk.Button(left_frame, text="加入播放列表", command=self.add_to_queue,
+                   bootstyle="success").pack(pady=5)
 
         if self.music_folder and os.path.isdir(self.music_folder):
             self.load_folder(self.music_folder)
@@ -135,20 +132,20 @@ class PlayerApp:
         right_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
         notebook = ttk.Notebook(right_frame)
-        ctrl_tab = tk.Frame(notebook)
-        lyric_tab = tk.Frame(notebook)
+        ctrl_tab = ttk.Frame(notebook)
+        lyric_tab = ttk.Frame(notebook)
         notebook.add(ctrl_tab, text="控制")
         notebook.add(lyric_tab, text="歌词")
         notebook.pack(fill="both", expand=True)
 
-        self.current_file_label = tk.Label(ctrl_tab, text="当前播放：", font=("Microsoft YaHei", 12, "bold"))
+        self.current_file_label = ttk.Label(ctrl_tab, text="当前播放：", font=("Microsoft YaHei", 12, "bold"))
         self.current_file_label.pack(pady=5)
 
-        row1 = tk.Frame(ctrl_tab)
+        row1 = ttk.Frame(ctrl_tab)
         row1.pack()
-        tk.Label(row1, text="分离方式：", font=("Microsoft YaHei", 11)).pack(side=tk.LEFT)
+        ttk.Label(row1, text="分离方式：").pack(side=tk.LEFT)
         tk.OptionMenu(row1, self.device_choice, "cpu", "cuda").pack(side=tk.LEFT, padx=5)
-        tk.Label(row1, text="播放模式：", font=("Microsoft YaHei", 11)).pack(side=tk.LEFT, padx=(20, 0))
+        ttk.Label(row1, text="播放模式：").pack(side=tk.LEFT, padx=(20, 0))
         tk.OptionMenu(row1, self.play_mode, "顺序", "循环", "随机").pack(side=tk.LEFT)
 
         # 设备列表
@@ -156,7 +153,7 @@ class PlayerApp:
         hostapis = sd.query_hostapis()
 
         # 输出设备
-        row2 = tk.Frame(ctrl_tab)
+        row2 = ttk.Frame(ctrl_tab)
         row2.pack()
         output_devs = []
         self.output_device_map.clear()
@@ -170,7 +167,7 @@ class PlayerApp:
             self.output_device_map["默认"] = None
         if self.output_device.get() not in output_devs:
             self.output_device.set("默认")
-        tk.Label(row2, text="输出设备：", font=("Microsoft YaHei", 11)).pack(side=tk.LEFT)
+        ttk.Label(row2, text="输出设备：").pack(side=tk.LEFT)
         tk.OptionMenu(row2, self.output_device, *output_devs).pack(side=tk.LEFT, padx=5)
 
         # 麦克风设备选择，显示索引和 Host API，避免名称重复
@@ -186,9 +183,9 @@ class PlayerApp:
             self.input_device_map["无"] = None
         if self.mic_device.get() not in input_devs:
             self.mic_device.set("无")
-        row3 = tk.Frame(ctrl_tab)
+        row3 = ttk.Frame(ctrl_tab)
         row3.pack()
-        tk.Label(row3, text="麦克风：", font=("Microsoft YaHei", 11)).pack(side=tk.LEFT)
+        ttk.Label(row3, text="麦克风：").pack(side=tk.LEFT)
         tk.OptionMenu(row3, self.mic_device, *input_devs).pack(side=tk.LEFT, padx=5)
         tk.Checkbutton(row3, text="启用麦克风", variable=self.mic_enabled,
                        font=("Microsoft YaHei", 10)).pack(side=tk.LEFT, padx=5)
@@ -206,19 +203,23 @@ class PlayerApp:
         self.vocal_volume.trace_add("write", lambda *args: self.change_volume(self.vocal_volume.get()))
         self.accomp_volume.trace_add("write", lambda *args: self.change_accomp_volume(self.accomp_volume.get()))
 
-        control_frame = tk.Frame(ctrl_tab)
+        control_frame = ttk.Frame(ctrl_tab)
         control_frame.pack(pady=5)
 
-        self.prev_button = tk.Button(control_frame, text="⏮ 上一首", command=self.play_previous_song,
-                                     font=("Microsoft YaHei", 11))
+        self.prev_button = ttk.Button(control_frame, text="⏮ 上一首",
+                                      command=self.play_previous_song,
+                                      bootstyle="secondary")
         self.prev_button.pack(side=tk.LEFT, padx=5)
 
-        self.pause_button = tk.Button(control_frame, text="⏸ 暂停", command=self.toggle_pause,
-                                      state=tk.DISABLED, font=("Microsoft YaHei", 11, "bold"))
+        self.pause_button = ttk.Button(control_frame, text="⏸ 暂停",
+                                        command=self.toggle_pause,
+                                        state=tk.DISABLED,
+                                        bootstyle="warning")
         self.pause_button.pack(side=tk.LEFT, padx=5)
 
-        self.next_button = tk.Button(control_frame, text="⏭ 下一首", command=self.play_next_song_manual,
-                                     font=("Microsoft YaHei", 11))
+        self.next_button = ttk.Button(control_frame, text="⏭ 下一首",
+                                      command=self.play_next_song_manual,
+                                      bootstyle="secondary")
         self.next_button.pack(side=tk.LEFT, padx=5)
 
         self.vol_slider = tk.Scale(ctrl_tab, from_=0, to=1, resolution=0.01,
@@ -236,35 +237,34 @@ class PlayerApp:
         self.accomp_slider.pack(fill="x", padx=30)
 
         self.progress_var = tk.DoubleVar()
-        progress_frame = tk.Frame(ctrl_tab)
+        progress_frame = ttk.Frame(ctrl_tab)
         progress_frame.pack(fill="x", padx=30, pady=10)
-        tk.Label(progress_frame, text="播放进度", font=("Microsoft YaHei", 11)).pack(anchor="w")
+        ttk.Label(progress_frame, text="播放进度").pack(anchor="w")
         self.progress_bar = ttk.Scale(progress_frame, from_=0, to=100, orient=tk.HORIZONTAL,
                                       variable=self.progress_var)
         self.progress_bar.pack(fill="x", expand=True)
         self.progress_bar.bind("<ButtonPress-1>", self.start_drag)
         self.progress_bar.bind("<ButtonRelease-1>", self.on_seek)
 
-        self.time_label = tk.Label(ctrl_tab, text="00:00 / 00:00", font=("Courier", 12, "bold"))
+        self.time_label = ttk.Label(ctrl_tab, text="00:00 / 00:00", font=("Courier", 12, "bold"))
         self.time_label.pack()
 
-        export_frame = tk.Frame(ctrl_tab)
+        export_frame = ttk.Frame(ctrl_tab)
         export_frame.pack(pady=5)
-        tk.Button(export_frame, text="导出人声", command=self.export_vocals,
-                  font=("Microsoft YaHei", 10)).pack(side=tk.LEFT, padx=5)
-        tk.Button(export_frame, text="导出伴奏", command=self.export_accompaniment,
-                  font=("Microsoft YaHei", 10)).pack(side=tk.LEFT, padx=5)
+        ttk.Button(export_frame, text="导出人声", command=self.export_vocals,
+                   bootstyle="info").pack(side=tk.LEFT, padx=5)
+        ttk.Button(export_frame, text="导出伴奏", command=self.export_accompaniment,
+                   bootstyle="info").pack(side=tk.LEFT, padx=5)
 
-        queue_frame = tk.Frame(ctrl_tab)
+        queue_frame = ttk.Frame(ctrl_tab)
         queue_frame.pack(fill="x", padx=30, pady=5)
-        self.toggle_queue_button = tk.Button(queue_frame, text="显示待播列表", command=self.toggle_queue,
-                                             font=("Microsoft YaHei", 11))
+        self.toggle_queue_button = ttk.Button(queue_frame, text="显示待播列表", command=self.toggle_queue)
         self.toggle_queue_button.pack(anchor="w")
-        self.queue_content = tk.Frame(queue_frame)
-        self.queue_list_frame = tk.Frame(self.queue_content)
+        self.queue_content = ttk.Frame(queue_frame)
+        self.queue_list_frame = ttk.Frame(self.queue_content)
         self.queue_list_frame.pack(fill="both", expand=True)
-        self.clear_queue_btn = tk.Button(self.queue_content, text="清空列表", command=self.clear_queue,
-                                         font=("Microsoft YaHei", 10))
+        self.clear_queue_btn = ttk.Button(self.queue_content, text="清空列表", command=self.clear_queue,
+                                         bootstyle="danger-outline")
         self.clear_queue_btn.pack(pady=2)
         self.queue_visible = False
         self.update_queue_listbox()
@@ -302,17 +302,17 @@ class PlayerApp:
         for child in self.queue_list_frame.winfo_children():
             child.destroy()
         if not self.future_queue:
-            tk.Label(self.queue_list_frame, text="(空)",
+            ttk.Label(self.queue_list_frame, text="(空)",
                      font=("Microsoft YaHei", 10)).pack()
         else:
             for idx, p in enumerate(self.future_queue):
-                row = tk.Frame(self.queue_list_frame)
+                row = ttk.Frame(self.queue_list_frame)
                 row.pack(fill="x")
-                tk.Label(row, text=os.path.basename(p), font=("Microsoft YaHei", 10))\
+                ttk.Label(row, text=os.path.basename(p), font=("Microsoft YaHei", 10))\
                     .pack(side=tk.LEFT, fill="x", expand=True)
-                tk.Button(row, text="删除",
-                          command=lambda i=idx: self.remove_from_queue(i),
-                          font=("Microsoft YaHei", 9)).pack(side=tk.RIGHT)
+                ttk.Button(row, text="删除",
+                           command=lambda i=idx: self.remove_from_queue(i),
+                           bootstyle="danger").pack(side=tk.RIGHT)
 
     def clear_queue(self):
         if self.future_queue:

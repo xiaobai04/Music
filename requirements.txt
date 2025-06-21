@@ -4,3 +4,4 @@ demucs
 sounddevice
 numpy
 soundfile
+ttkbootstrap
