@@ -38,7 +38,6 @@ class PlayerApp:
 
         self.theme_choice   = tk.StringVar(value=settings.get("theme", "flatly"))
         self.language_choice = tk.StringVar(value=settings.get("language", "中文"))
-        self.progress_map    = dict(settings.get("progress", {}))
         self.style.theme_use(self.theme_choice.get())
         self.theme_choice.trace_add("write",
                                     lambda *_: self.style.theme_use(self.theme_choice.get()))
@@ -562,7 +561,8 @@ class PlayerApp:
             if old_data:
                 if keep_current_as_next:
                     self.next_audio_data = old_data
-                self.prev_audio_data = old_data
+                else:
+                    self.prev_audio_data = old_data
             self.current_audio_data = None
             self.current_index = index
 
@@ -613,10 +613,7 @@ class PlayerApp:
                 self.output_device.set("默认")
                 self.persist_settings()
             if resume:
-                if self.audio_path in self.progress_map:
-                    self.player.seek_to(self.progress_map[self.audio_path])
-            else:
-                self.progress_map[self.audio_path] = 0
+                pass  # no saved progress
 
             self.current_audio_data = (index, vocals, accomp, sr)
 
@@ -628,11 +625,7 @@ class PlayerApp:
                 self.lyrics_box.insert("end", "⚠️ 未找到歌词文件\n")
 
             self.progress_bar.config(state=tk.NORMAL)
-            if resume:
-                progress = self.progress_map.get(self.audio_path, 0)
-            else:
-                progress = 0
-            self.progress_var.set(progress * 100)
+            self.progress_var.set(0)
             if not self.update_loop_running:
                 threading.Thread(target=self.update_progress_loop, daemon=True).start()
 
@@ -747,7 +740,7 @@ class PlayerApp:
                 self.lyrics_box.insert("end", "⚠️ 无歌词\n")
 
             self.progress_bar.config(state=tk.NORMAL)
-            self.progress_var.set(self.progress_map.get(self.audio_path, 0) * 100)
+            self.progress_var.set(0)
             if not self.update_loop_running:
                 threading.Thread(target=self.update_progress_loop, daemon=True).start()
 
@@ -893,8 +886,6 @@ class PlayerApp:
             if not self.dragging:
                 self.progress_var.set(self.player.get_progress() * 100)
             self.time_label.config(text=f"{self.format_time(current)} / {self.format_time(total)}")
-            if self.audio_path:
-                self.progress_map[self.audio_path] = self.player.get_progress()
             time.sleep(0.2)
         self.update_loop_running = False
 
@@ -902,8 +893,6 @@ class PlayerApp:
         if self.player:
             percent = self.progress_var.get() / 100
             self.player.seek_to(percent)
-            if self.audio_path:
-                self.progress_map[self.audio_path] = percent
         self.dragging = False
 
     def format_time(self, seconds):
@@ -1005,13 +994,10 @@ class PlayerApp:
             "history": self.play_history,
             "theme": self.theme_choice.get(),
             "language": self.language_choice.get(),
-            "progress": self.progress_map,
         }
         save_settings(settings)
 
     def on_close(self):
-        if self.player and self.audio_path:
-            self.progress_map[self.audio_path] = self.player.get_progress()
         self.persist_settings()
         if self.player:
             self.player.stop()
