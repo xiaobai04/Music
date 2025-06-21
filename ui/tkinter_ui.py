@@ -479,8 +479,8 @@ class PlayerApp:
         if not index:
             return
         path = self.music_files[index[0]]
-        # Insert at the front so the most recently added song plays next
-        self.future_queue.insert(0, path)
+        # Store in arrival order but play in LIFO by popping from the end
+        self.future_queue.append(path)
         self.lyrics_box.insert("end", f"✅ 已加入待播：{os.path.basename(path)}\n")
         self.update_queue_listbox()
         self.persist_settings()
@@ -751,9 +751,8 @@ class PlayerApp:
         if not self.music_files:
             return None
         if self.future_queue:
-            path = self.future_queue[0]
+            path = self.future_queue[-1] if peek else self.future_queue.pop()
             if not peek:
-                self.future_queue.pop(0)
                 self.update_queue_listbox()
                 self.persist_settings()
             if path in self.music_files:

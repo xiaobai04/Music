@@ -114,6 +114,11 @@ class AudioPlayer:
                 self.stream.stop()
             self.stream.close()
             self.stream = None
+            try:
+                # Ensure any buffered frames are flushed
+                sd.stop()
+            except Exception:
+                pass
         if self.mic_stream:
             self.stop_mic()
 
