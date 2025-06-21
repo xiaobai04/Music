@@ -78,27 +78,6 @@ class PlayerApp:
         self.future_queue        = list(settings.get("queue", []))
         self.session_id          = None
 
-        # ================= 顶部菜单 ================= #
-        menu       = tk.Menu(root)
-        file_menu  = tk.Menu(menu, tearoff=0)
-        theme_menu = tk.Menu(menu, tearoff=0)
-        lang_menu  = tk.Menu(menu, tearoff=0)
-
-        file_menu.add_command(label="选择音乐文件夹", command=self.choose_folder)
-        file_menu.add_separator()
-        file_menu.add_command(label="退出",              command=self.on_close)
-        menu.add_cascade(label="文件", menu=file_menu)
-
-        theme_menu.add_radiobutton(label="浅色", variable=self.theme_choice, value="flatly")
-        theme_menu.add_radiobutton(label="暗色", variable=self.theme_choice, value="darkly")
-        menu.add_cascade(label="外观", menu=theme_menu)
-
-        lang_menu.add_radiobutton(label="中文",   variable=self.language_choice, value="中文")
-        lang_menu.add_radiobutton(label="English", variable=self.language_choice, value="English")
-        menu.add_cascade(label="语言", menu=lang_menu)
-
-        root.config(menu=menu)
-
         # ========= 全局快捷键 ========= #
         root.bind('<space>', lambda e: self.toggle_pause())
         root.bind('<Left>',  lambda e: self.seek_relative(-5))
@@ -111,22 +90,20 @@ class PlayerApp:
         main = ttk.Frame(root)
         main.pack(fill="both", expand=True)
 
-        main.columnconfigure(0, weight=1)  # 左栏
-        main.columnconfigure(1, weight=3)  # 右栏
+        main.columnconfigure(0, weight=1)
+        main.columnconfigure(1, weight=3)
         main.rowconfigure(0,  weight=1)
 
         # ================= 左栏 ================= #
         left_frame = ttk.Frame(main, padding=(10, 10))
         left_frame.grid(row=0, column=0, sticky="nsew")
         left_frame.columnconfigure(0, weight=1)
-        left_frame.rowconfigure(3, weight=1)   # Listbox 区域自动伸缩
+        left_frame.rowconfigure(3, weight=1)
 
-        # 1. 选择音乐文件夹
         ttk.Button(left_frame, text="选择音乐文件夹",
                 command=self.choose_folder, bootstyle="info-outline")\
             .grid(row=0, column=0, sticky="ew", pady=(0, 8))
 
-        # 2. 搜索行
         search_row = ttk.Frame(left_frame)
         search_row.grid(row=1, column=0, sticky="ew", pady=(0, 6))
         search_row.columnconfigure(0, weight=1)
@@ -138,14 +115,12 @@ class PlayerApp:
         ttk.Button(search_row, text="搜索", command=self.search_songs,
                 bootstyle="secondary", width=6).grid(row=0, column=1, padx=(6, 0))
 
-        # 3. 音乐列表
         ttk.Label(left_frame, text="🎵 音乐列表", font=("Microsoft YaHei", 11, "bold"))\
             .grid(row=2, column=0, sticky="w")
         self.file_listbox = tk.Listbox(left_frame, font=("Microsoft YaHei", 11))
         self.file_listbox.grid(row=3, column=0, sticky="nsew")
         self.file_listbox.bind("<Double-Button-1>", self.on_song_double_click)
 
-        # 4. 加入播放列表
         ttk.Button(left_frame, text="加入播放列表", command=self.add_to_queue,
                 bootstyle="success").grid(row=4, column=0, sticky="e", pady=(6, 0))
 
@@ -162,31 +137,17 @@ class PlayerApp:
         notebook.add(ctrl_tab,  text="控制")
         notebook.add(lyric_tab, text="歌词")
 
-        # ---------- 控制页 ---------- #
         ctrl_tab.columnconfigure(0, weight=1)
 
-        # 当前文件
         self.current_file_label = ttk.Label(ctrl_tab, text="当前播放：",
                                             font=("Microsoft YaHei", 12, "bold"))
         self.current_file_label.grid(row=0, column=0, sticky="w", pady=(2, 6))
 
-        # 音频设置
+        # ====== 音频设置（优化居中） ====== #
         audio_frame = ttk.Labelframe(ctrl_tab, text="音频设置")
         audio_frame.grid(row=1, column=0, sticky="ew", padx=2, pady=2)
-        for i in range(6):
-            audio_frame.columnconfigure(i, weight=1)
 
-        # —— 分离方式 & 播放模式 —— #
-        ttk.Label(audio_frame, text="分离方式：").grid(row=0, column=0, sticky="e", pady=2)
-        ttkb.OptionMenu(audio_frame, self.device_choice, self.device_choice.get(),
-                        "cpu", "cuda", style="info.TMenubutton")\
-            .grid(row=0, column=1, sticky="w", pady=2)
-        ttk.Label(audio_frame, text="播放模式：").grid(row=0, column=2, sticky="e", pady=2)
-        ttkb.OptionMenu(audio_frame, self.play_mode, self.play_mode.get(),
-                        "顺序", "循环", "随机", style="info.TMenubutton")\
-            .grid(row=0, column=3, sticky="w", pady=2)
-
-        # —— 输出 / 输入设备 —— #
+        # 查询设备信息
         self.output_device_map.clear()
         self.input_device_map.clear()
         all_devices = list(enumerate(sd.query_devices()))
@@ -199,14 +160,10 @@ class PlayerApp:
                 output_devs.append(label)
                 self.output_device_map[label] = i
         if not output_devs:
-            output_devs = ["默认"]; self.output_device_map["默认"] = None
+            output_devs = ["默认"]
+            self.output_device_map["默认"] = None
         if self.output_device.get() not in output_devs:
             self.output_device.set("默认")
-
-        ttk.Label(audio_frame, text="输出设备：").grid(row=0, column=4, sticky="e", pady=2)
-        ttkb.OptionMenu(audio_frame, self.output_device, self.output_device.get(),
-                        *output_devs, style="info.TMenubutton")\
-            .grid(row=0, column=5, sticky="w", pady=2)
 
         input_devs = []
         for i, dev in all_devices:
@@ -215,22 +172,32 @@ class PlayerApp:
                 input_devs.append(label)
                 self.input_device_map[label] = i
         if not input_devs:
-            input_devs = ["无"]; self.input_device_map["无"] = None
+            input_devs = ["无"]
+            self.input_device_map["无"] = None
         if self.mic_device.get() not in input_devs:
             self.mic_device.set("无")
 
-        ttk.Label(audio_frame, text="麦克风：").grid(row=1, column=0, sticky="e", pady=2)
-        ttkb.OptionMenu(audio_frame, self.mic_device, self.mic_device.get(),
-                        *input_devs, style="info.TMenubutton")\
-            .grid(row=1, column=1, sticky="w", pady=2)
+        # --- 行1：分离方式 + 播放模式 ---
+        row1 = ttk.Frame(audio_frame)
+        row1.pack(pady=4)
+        ttk.Label(row1, text="分离方式：").pack(side="left", padx=4)
+        tk.OptionMenu(row1, self.device_choice, "cpu", "cuda").pack(side="left", padx=4)
+        ttk.Label(row1, text="播放模式：").pack(side="left", padx=4)
+        tk.OptionMenu(row1, self.play_mode, "顺序", "循环", "随机").pack(side="left", padx=4)
+        ttk.Label(row1, text="输出设备：").pack(side="left", padx=4)
+        tk.OptionMenu(row1, self.output_device, *output_devs).pack(side="left", padx=4)
 
-        tk.Checkbutton(audio_frame, text="启用麦克风", variable=self.mic_enabled,
-                       font=("Microsoft YaHei", 10))\
-            .grid(row=1, column=2, sticky="w", pady=2)
-        tk.Scale(audio_frame, from_=0, to=1, resolution=0.01, orient=tk.HORIZONTAL,
-                 variable=self.mic_volume, label="麦克风音量", length=140,
-                 font=("Microsoft YaHei", 10))\
-            .grid(row=1, column=3, columnspan=3, sticky="w", pady=2)
+        # --- 行3：麦克风 + 音量 ---
+        row2 = ttk.Frame(audio_frame)
+        row2.pack(pady=4)
+        ttk.Label(row2, text="麦克风：").pack(side="left", padx=4)
+        tk.OptionMenu(row2, self.mic_device, *input_devs).pack(side="left", padx=4)
+        tk.Checkbutton(row2, text="启用麦克风", variable=self.mic_enabled,
+                    font=("Microsoft YaHei", 10)).pack(side="left", padx=4)
+        tk.Scale(row2, from_=0, to=1, resolution=0.01, orient=tk.HORIZONTAL,
+                variable=self.mic_volume, label="麦克风音量", length=140,
+                font=("Microsoft YaHei", 10)).pack(side="left", padx=4)
+
 
         # —— 状态持久化 —— #
         self.device_choice.trace_add("write", lambda *_: self.persist_settings())
@@ -265,18 +232,11 @@ class PlayerApp:
         self.next_button.pack(side=tk.LEFT, padx=5)
 
         # 人声 / 伴奏 音量
-        self.vol_slider = tk.Scale(
-            ctrl_tab,
-            from_=0,
-            to=1,
-            resolution=0.01,
-            orient=tk.HORIZONTAL,
-            label="🎤 人声 100%",
-            command=self.change_volume,
-            variable=self.vocal_volume,
-            font=("Microsoft YaHei", 11),
-            fg="lightblue",
-        )
+        self.vol_slider = tk.Scale(ctrl_tab, from_=0, to=1, resolution=0.01,
+                                orient=tk.HORIZONTAL, label="🎤 人声 100%",
+                                command=self.change_volume,
+                                variable=self.vocal_volume,
+                                font=("Microsoft YaHei", 11))
         self.vol_slider.grid(row=3, column=0, sticky="ew", padx=30)
         self.vol_slider.config(label=f"🎤 人声 {int(self.vocal_volume.get()*100)}%")
 
