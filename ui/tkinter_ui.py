@@ -76,6 +76,8 @@ class PlayerApp:
         self.current_index       = -1
         self.next_audio_data = self.prev_audio_data = self.current_audio_data = None
         self.future_queue        = list(settings.get("queue", []))
+        self.play_history        = list(settings.get("history", []))
+        self.history_limit       = 100
         self.session_id          = None
 
         # ========= 全局快捷键 ========= #
@@ -459,7 +461,6 @@ class PlayerApp:
         index = self.file_listbox.curselection()
         if not index:
             return
-        self.clear_queue()
         self.auto_next_enabled = False  # 禁止自动续播
         self.current_index = index[0]
         threading.Thread(target=lambda: self.play_song(self.current_index), daemon=True).start()
@@ -478,6 +479,21 @@ class PlayerApp:
     def play_previous_song(self):
         if not self.music_files:
             return
+        if self.play_history:
+            path = self.play_history.pop()
+            if path in self.music_files:
+                prev_index = self.music_files.index(path)
+                self.current_index = prev_index
+                if self.prev_audio_data and self.prev_audio_data[0] == prev_index:
+                    _, vocals, accomp, sr = self.prev_audio_data
+                    self.prev_audio_data = None
+                    threading.Thread(
+                        target=lambda: self.play_song(prev_index, (vocals, accomp, sr), update_history=False),
+                        daemon=True
+                    ).start()
+                else:
+                    threading.Thread(target=lambda: self.play_song(prev_index, update_history=False), daemon=True).start()
+                return
         prev_index = self.get_prev_index()
         if prev_index is None:
             return
@@ -486,11 +502,11 @@ class PlayerApp:
             _, vocals, accomp, sr = self.prev_audio_data
             self.prev_audio_data = None
             threading.Thread(
-                target=lambda: self.play_song(prev_index, (vocals, accomp, sr)),
+                target=lambda: self.play_song(prev_index, (vocals, accomp, sr), update_history=False),
                 daemon=True
             ).start()
         else:
-            threading.Thread(target=lambda: self.play_song(prev_index), daemon=True).start()
+            threading.Thread(target=lambda: self.play_song(prev_index, update_history=False), daemon=True).start()
 
     def play_next_song_manual(self):
         self.auto_next_enabled = False  # 禁止自动续播
@@ -508,7 +524,7 @@ class PlayerApp:
                 threading.Thread(target=lambda: self.play_song(next_index), daemon=True).start()
 
 
-    def play_song(self, index, preloaded=None):
+    def play_song(self, index, preloaded=None, update_history=True):
         if not self.play_lock.acquire(blocking=False):
             return  # 正在播放时不重复执行
 
@@ -518,6 +534,10 @@ class PlayerApp:
             current_session = self.session_id
             self.next_audio_data = None
             old_data = self.current_audio_data
+            if update_history and self.audio_path:
+                self.play_history.append(self.audio_path)
+                if len(self.play_history) > self.history_limit:
+                    self.play_history = self.play_history[-self.history_limit:]
             if self.player:
                 self.player.stop()
                 self.player = None
@@ -594,6 +614,7 @@ class PlayerApp:
             messagebox.showerror("出错", str(e))
         finally:
             self.play_lock.release()
+            self.persist_settings()
 
 
 
@@ -920,6 +941,7 @@ class PlayerApp:
             "vocal_volume": self.vocal_volume.get(),
             "accomp_volume": self.accomp_volume.get(),
             "queue": self.future_queue,
+            "history": self.play_history,
             "theme": self.theme_choice.get(),
             "language": self.language_choice.get(),
             "progress": self.progress_map,
