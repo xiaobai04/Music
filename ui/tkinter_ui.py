@@ -150,9 +150,6 @@ class PlayerApp:
         ttk.Button(left_frame, text="加入播放列表", command=self.add_to_queue,
                    bootstyle="success").pack(pady=5)
 
-        if self.music_folder and os.path.isdir(self.music_folder):
-            self.load_folder(self.music_folder)
-
         # 右侧控制面板
         right_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
@@ -295,6 +292,9 @@ class PlayerApp:
         self.clear_queue_btn.pack(pady=2)
         self.queue_visible = False
         self.update_queue_listbox()
+
+        if self.music_folder and os.path.isdir(self.music_folder):
+            self.load_folder(self.music_folder)
 
         self.lyrics_box = tk.Text(lyric_tab, font=("Microsoft YaHei", 14))
         self.lyrics_box.pack(fill="both", expand=True, pady=5)
