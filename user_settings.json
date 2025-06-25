@@ -1,0 +1,57 @@
+{
+  "device": "cuda",
+  "play_mode": "顺序",
+  "music_folder": "D:/PC/Music/国语",
+  "output_device": "默认",
+  "mic_device": "17: 耳机 (EarPods) (Windows WASAPI)",
+  "mic_volume": 1.0,
+  "mic_enabled": false,
+  "vocal_volume": 0.25394896719319565,
+  "accomp_volume": 0.6026731470230863,
+  "queue": [
+    "D:/PC/Music/国语\\_Ragger、番番 - 我也想.flac",
+    "D:/PC/Music/国语\\cici_ - 至少还有你(温柔版).flac",
+    "D:/PC/Music/国语\\不是花火呀 - 记·念.flac",
+    "D:/PC/Music/国语\\于文文 - 体面.flac"
+  ],
+  "history": [
+    {
+      "path": "D:/PC/Music/国语\\林俊杰 - 可惜没如果.flac",
+      "time": 1750706071.55061
+    },
+    {
+      "path": "D:/PC/Music/国语\\林俊杰 - 可惜没如果.flac",
+      "time": 1750706077.6586325
+    },
+    {
+      "path": "D:/PC/Music/国语\\郭静 - 心墙.flac",
+      "time": 1750859765.6729739
+    },
+    {
+      "path": "D:/PC/Music/国语\\郭静 - 心墙.flac",
+      "time": 1750859983.8021502
+    },
+    {
+      "path": "D:/PC/Music/国语\\颜人中 - 我只能离开.flac",
+      "time": 1750860555.5717664
+    },
+    {
+      "path": "D:/PC/Music/国语\\王贰浪 - 把回忆拼好给你.flac",
+      "time": 1750860762.7944689
+    },
+    {
+      "path": "D:/PC/Music/国语\\JC 陈咏桐 - 说散就散.flac",
+      "time": 1750860859.0335987
+    },
+    {
+      "path": "D:/PC/Music/国语\\Kui Kui - 宝贝在干嘛.flac",
+      "time": 1750861004.7056363
+    },
+    {
+      "path": "D:/PC/Music/国语\\LBI利比 - 小城夏天.flac",
+      "time": 1750861010.514151
+    }
+  ],
+  "theme": "flatly",
+  "language": "中文"
+}
