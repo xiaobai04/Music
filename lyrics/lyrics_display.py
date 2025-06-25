@@ -1,10 +1,10 @@
-"""Display scrolling lyrics synchronized with the AudioPlayer."""
+"""根据播放器进度滚动显示歌词的辅助模块。"""
 
 import time
 import threading
 
 def start_lyrics_display(lyrics, player, text_widget=None, font_size=14):
-    """Launch a background thread to update the lyric text widget."""
+    """开启后台线程定时更新歌词文本控件。"""
     manual_scroll_time = 0
 
     def on_scroll(event=None):

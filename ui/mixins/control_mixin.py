@@ -1,13 +1,13 @@
-"""Control related mixin providing previous/next and pause logic."""
+"""提供上一首、下一首及暂停逻辑的混入类。"""
 
 import threading
 
 
 class ControlMixin:
-    """Mixin for playback control buttons and shortcuts."""
+    """处理播放控制按钮及快捷键的混入类。"""
 
     def toggle_pause(self):
-        """Toggle between pause and resume states."""
+        """在暂停和继续之间切换播放状态。"""
         if self.player:
             if self.player.paused:
                 self.player.resume()
@@ -21,7 +21,7 @@ class ControlMixin:
                     self.pause_button_lyrics.config(text="▶ 继续")
 
     def play_previous_song(self):
-        """Play the previously played song if available."""
+        """播放上一次播放过的歌曲（如果有）。"""
         if not self.music_files:
             return
         if self.play_history:
@@ -87,7 +87,7 @@ class ControlMixin:
             ).start()
 
     def play_next_song_manual(self):
-        """Skip to the next song triggered by the user."""
+        """手动跳到下一首歌曲。"""
         self.auto_next_enabled = False
         next_index = self.get_next_index()
         if next_index is not None:
@@ -110,7 +110,7 @@ class ControlMixin:
                 ).start()
 
     def seek_relative(self, seconds):
-        """Seek forward/backward by a relative number of seconds."""
+        """相对当前时间快进或快退指定秒数。"""
         if self.player:
             total = self.player.num_frames / self.player.sample_rate
             new_time = self.player.get_current_time() + seconds
@@ -119,7 +119,7 @@ class ControlMixin:
             self.progress_var.set((new_time / total) * 100)
 
     def adjust_volume(self, delta):
-        """Increase or decrease both vocal and accomp volumes."""
+        """同时调节人声和伴奏的音量。"""
         v = min(1.0, max(0.0, self.vocal_volume.get() + delta))
         a = min(1.0, max(0.0, self.accomp_volume.get() + delta))
         self.vocal_volume.set(v)

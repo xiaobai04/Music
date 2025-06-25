@@ -1,5 +1,5 @@
-# lyrics/lrc_parser.py
-"""Parse LRC lyric files into time/text pairs."""
+# lrc_parser.py 解析 LRC 歌词文件
+"""将 LRC 歌词文件解析为 (时间, 文本) 列表。"""
 
 import re
 

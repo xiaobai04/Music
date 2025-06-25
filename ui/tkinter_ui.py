@@ -1,4 +1,4 @@
-"""Tkinter user interface for the Demucs based music player."""
+"""基于 Tkinter 的人声分离播放器界面。"""
 
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
@@ -31,10 +31,10 @@ class PlayerApp(
     SearchMixin,
     UtilsMixin,
 ):
-    """Main application window composed of multiple mixins."""
+    """主窗口类，由多个 mixin 组合而成。"""
 
     def __init__(self, root):
-        """Construct all widgets and initialize state."""
+        """创建界面组件并初始化状态。"""
         # ================= 基础初始化 ================= #
         self.root = root
         self.root.title("🎵 人声分离播放器")

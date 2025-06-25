@@ -1,4 +1,4 @@
-"""Simple audio playback engine supporting microphone mixing."""
+"""简单的音频播放引擎，支持混入麦克风声音。"""
 import sounddevice as sd
 import numpy as np
 import threading
@@ -6,10 +6,10 @@ import collections
 from utils.audio_utils import resample_audio
 
 class AudioPlayer:
-    """Play separated vocals and accompaniment with optional mic input."""
+    """播放分离后的人声和伴奏，可选择混入麦克风。"""
 
     def __init__(self, vocals, accomp, sample_rate, output_device=None, mic_device=None, mic_enabled=False, latency=0.05):
-        """Initialize the player with audio buffers and device settings."""
+        """初始化播放器并保存音频数据及设备设置。"""
         self.vocals = vocals
         self.accomp = accomp
         self.mic_input_sr = sample_rate
@@ -32,11 +32,11 @@ class AudioPlayer:
         self.mic_device = mic_device
         self.mic_enabled = mic_enabled
         self.latency = latency
-        # Use reentrant lock to allow nested calls from callbacks
+        # 使用可重入锁，允许回调中嵌套调用
         self.lock = threading.RLock()
 
     def _mic_callback(self, indata, frames, time, status):
-        """Handle incoming microphone audio and queue it for mixing."""
+        """处理麦克风音频并放入队列以供混音。"""
         with self.lock:
             data = indata.copy()
             if self.mic_input_sr != self.sample_rate:
@@ -50,7 +50,7 @@ class AudioPlayer:
                 self.mic_queue.popleft()
 
     def _callback(self, outdata, frames, time, status):
-        """Main playback callback mixing vocals, accompaniment and mic."""
+        """主回调：混合人声、伴奏与麦克风数据。"""
         with self.lock:
             if not self.playing or self.paused:
                 outdata[:] = np.zeros((frames, self.channels), dtype='float32')
@@ -81,7 +81,7 @@ class AudioPlayer:
             self.position = end
 
     def play(self):
-        """Start playback from the beginning."""
+        """从头开始播放音频。"""
         if self.playing:
             return
         self.playing = True
@@ -106,7 +106,7 @@ class AudioPlayer:
             self.stream.start()
         except Exception:
             if self.output_device is not None:
-                # Fallback to system default if the selected device fails
+                # 指定设备失效时回退到系统默认设备
                 self.output_device = None
                 try:
                     sd.check_output_settings(device=None,
@@ -127,7 +127,7 @@ class AudioPlayer:
                 except Exception:
                     self.stream = None
                     
-            # Search for any working output device
+            # 尝试查找可用的输出设备
             for idx, info in enumerate(sd.query_devices()):
                 if info.get("max_output_channels", 0) <= 0:
                     continue
@@ -158,30 +158,30 @@ class AudioPlayer:
                 raise
 
     def pause(self):
-        """Pause playback without resetting position."""
+        """暂停播放并保留当前位置。"""
         with self.lock:
             self.paused = True
 
     def resume(self):
-        """Resume playback if currently paused."""
+        """在暂停后继续播放。"""
         with self.lock:
             self.paused = False
 
     def stop(self):
-        """Stop all streams and reset state."""
+        """停止播放并重置所有状态。"""
         self.playing = False
         self.paused = False
         if self.stream:
             try:
-                # Abort to immediately halt playback and avoid leftover audio
+                # 使用 abort 立即停止播放，避免残留音频
                 self.stream.abort()
             except Exception:
-                # Fall back to stop if abort is unavailable
+                # abort 不可用时退回到 stop
                 self.stream.stop()
             self.stream.close()
             self.stream = None
             try:
-                # Ensure any buffered frames are flushed
+                # 清空缓冲区，保证完全停止
                 sd.stop()
             except Exception:
                 pass
@@ -189,22 +189,22 @@ class AudioPlayer:
             self.stop_mic()
 
     def set_vocal_volume(self, vol):
-        """Adjust the playback volume of the vocal track."""
+        """设置人声轨道的音量。"""
         with self.lock:
             self.vocal_volume = float(vol)
 
     def set_accomp_volume(self, vol):
-        """Adjust the volume of the accompaniment track."""
+        """设置伴奏轨道的音量。"""
         with self.lock:
             self.accomp_volume = float(vol)
 
     def set_mic_volume(self, vol):
-        """Adjust microphone mixing volume."""
+        """调整混入的麦克风音量。"""
         with self.lock:
             self.mic_volume = float(vol)
 
     def change_output_device(self, device):
-        """Switch to a different output audio device."""
+        """切换到其他输出音频设备。"""
         with self.lock:
             self.output_device = device
             if self.stream:
@@ -229,7 +229,7 @@ class AudioPlayer:
                     raise
 
     def start_mic(self, device=None):
-        """Begin capturing audio from the specified microphone device."""
+        """开始从指定麦克风采集音频。"""
         with self.lock:
             if device is not None:
                 self.mic_device = device
@@ -257,13 +257,13 @@ class AudioPlayer:
                 )
                 self.mic_stream.start()
             except Exception:
-                # If starting the mic fails, disable it to avoid deadlock
+                # 麦克风启动失败时禁用功能避免死锁
                 self.mic_stream = None
                 self.mic_enabled = False
                 raise
 
     def stop_mic(self):
-        """Stop microphone capture and clear any buffered audio."""
+        """停止麦克风采集并清空缓存。"""
         with self.lock:
             if self.mic_stream:
                 self.mic_stream.stop()
@@ -272,7 +272,7 @@ class AudioPlayer:
                 self.mic_queue.clear()
 
     def set_mic_enabled(self, enabled, device=None):
-        """Enable or disable microphone capture."""
+        """启用或关闭麦克风输入。"""
         with self.lock:
             self.mic_enabled = bool(enabled)
             if self.mic_enabled:
@@ -281,14 +281,14 @@ class AudioPlayer:
                 self.stop_mic()
 
     def get_progress(self):
-        """Return playback progress as a value between 0 and 1."""
+        """返回播放进度，范围 0 到 1。"""
         return self.position / self.num_frames if self.num_frames else 0.0
 
     def get_current_time(self):
-        """Return the current playback position in seconds."""
+        """获取当前已播放时间（秒）。"""
         return self.position / self.sample_rate
     
     def seek_to(self, percent):
-        """Jump to the given position (as a percentage of the track)."""
+        """跳转到指定百分比的位置。"""
         with self.lock:
             self.position = int(self.num_frames * percent)

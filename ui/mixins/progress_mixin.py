@@ -1,17 +1,17 @@
-"""Progress bar handling for showing playback position."""
+"""处理播放进度条显示的混入类。"""
 
 import time
 
 
 class ProgressMixin:
-    """Mixin handling progress bar updates."""
+    """负责更新进度条的混入类。"""
 
     def start_drag(self, event):
-        """Mark the start of user seeking on the progress bar."""
+        """在用户开始拖动进度条时标记状态。"""
         self.dragging = True
 
     def update_progress_loop(self):
-        """Background loop updating progress and time labels."""
+        """后台循环，定时刷新进度和时间标签。"""
         self.update_loop_running = True
         while self.player and (self.player.playing or self.player.paused):
             current = self.player.get_current_time()
@@ -29,13 +29,13 @@ class ProgressMixin:
         self.update_loop_running = False
 
     def on_seek(self, event):
-        """Handle releasing the progress bar after seeking."""
+        """用户松开进度条后跳转到指定位置。"""
         if self.player:
             percent = self.progress_var.get() / 100
             self.player.seek_to(percent)
         self.dragging = False
 
     def format_time(self, seconds):
-        """Convert seconds to MM:SS format."""
+        """将秒数转换为 MM:SS 格式。"""
         m, s = divmod(int(seconds), 60)
         return f"{m:02d}:{s:02d}"

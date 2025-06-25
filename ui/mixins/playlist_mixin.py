@@ -1,4 +1,4 @@
-"""Playlist management mixin handling music selection and queue."""
+"""负责音乐选择与待播队列管理的混入类。"""
 
 import os
 import tkinter as tk
@@ -8,17 +8,17 @@ import threading
 
 
 class PlaylistMixin:
-    """Mixin providing playlist and queue management methods."""
+    """提供播放列表和队列管理方法的混入类。"""
 
     def choose_folder(self):
-        """Prompt the user to select a music folder and load it."""
+        """提示用户选择音乐文件夹并加载。"""
         folder = filedialog.askdirectory()
         if folder:
             self.load_folder(folder)
             self.persist_settings()
 
     def load_folder(self, folder):
-        """Load all supported music files from the given folder."""
+        """从指定文件夹加载所有支持的音乐文件。"""
         self.music_folder = folder
         self.all_music_files = [
             os.path.join(folder, f)
@@ -32,13 +32,13 @@ class PlaylistMixin:
         self.update_queue_listbox()
 
     def refresh_file_listbox(self):
-        """Refresh the listbox displaying available songs."""
+        """刷新列表框以显示可播放的歌曲。"""
         self.file_listbox.delete(0, tk.END)
         for f in self.music_files:
             self.file_listbox.insert(tk.END, os.path.basename(f))
 
     def update_queue_listbox(self):
-        """Redraw the queue list to match the current state."""
+        """根据当前队列内容重绘列表。"""
         for child in self.queue_list_frame.winfo_children():
             child.destroy()
         if not self.future_queue:
@@ -64,14 +64,14 @@ class PlaylistMixin:
                 ).pack(side=tk.RIGHT)
 
     def clear_queue(self):
-        """Remove all songs from the upcoming queue."""
+        """清空待播列表中的所有歌曲。"""
         if self.future_queue:
             self.future_queue.clear()
             self.update_queue_listbox()
             self.persist_settings()
 
     def remove_from_queue(self, index):
-        """Remove the song at the specified queue index."""
+        """移除待播列表中指定位置的歌曲。"""
         if 0 <= index < len(self.future_queue):
             removed = self.future_queue.pop(index)
             self.lyrics_box.insert(
@@ -81,7 +81,7 @@ class PlaylistMixin:
             self.persist_settings()
 
     def toggle_queue(self):
-        """Show or hide the upcoming queue panel."""
+        """显示或隐藏待播队列面板。"""
         if self.queue_visible:
             self.queue_content.grid_remove()
             self.queue_visible = False
@@ -93,7 +93,7 @@ class PlaylistMixin:
 
 
     def on_song_double_click(self, event):
-        """Handle double clicking on a song in the listbox."""
+        """双击列表中的歌曲时开始播放。"""
         index = self.file_listbox.curselection()
         if not index:
             return
@@ -107,7 +107,7 @@ class PlaylistMixin:
         ).start()
 
     def add_to_queue(self):
-        """Add the currently selected song to the queue."""
+        """将当前选中的歌曲加入待播列表。"""
         index = self.file_listbox.curselection()
         if not index:
             return

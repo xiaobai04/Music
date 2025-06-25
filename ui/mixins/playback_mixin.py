@@ -1,4 +1,4 @@
-"""Core playback logic including preloading and automatic next track."""
+"""包含预加载及自动播放下一曲等核心播放逻辑的混入类。"""
 
 import os
 import random
@@ -15,10 +15,10 @@ from audio.player import AudioPlayer
 
 
 class PlaybackMixin:
-    """Mixin providing playback-related methods."""
+    """提供播放相关方法的混入类。"""
 
     def play_song(self, index, preloaded=None, update_history=True, resume=True, keep_current_as_next=False):
-        """Play the song at the given index, optionally using cached audio."""
+        """播放指定索引的歌曲，可使用预加载的音频数据。"""
         if not self.play_lock.acquire(blocking=False):
             return
         try:
@@ -112,7 +112,7 @@ class PlaybackMixin:
             self.persist_settings()
 
     def preload_next_song(self, session_id):
-        """Prepare the next track in a background thread."""
+        """在后台线程预加载下一首歌曲。"""
         next_index = self.get_next_index(peek=True)
         if next_index is None or session_id != self.session_id:
             return
@@ -131,7 +131,7 @@ class PlaybackMixin:
             self.next_audio_data = None
 
     def preload_prev_song(self, session_id):
-        """Preload the previous track in history."""
+        """预加载上一首历史歌曲。"""
         prev_index = self.get_prev_index()
         if prev_index is None or session_id != self.session_id:
             return
@@ -150,7 +150,7 @@ class PlaybackMixin:
             self.prev_audio_data = None
 
     def monitor_and_play_next(self, session_id):
-        """Watch for playback end and automatically start the next song."""
+        """监视播放结束并自动开始下一首。"""
         while self.player and self.player.playing and session_id == self.session_id:
             time.sleep(0.5)
         if session_id != self.session_id:
@@ -210,7 +210,7 @@ class PlaybackMixin:
             threading.Thread(target=lambda: self.monitor_and_play_next(self.session_id), daemon=True).start()
 
     def get_next_index(self, peek=False, queue_only=False):
-        """Return the index of the next track based on play mode and queue."""
+        """根据播放模式和队列返回下一首的索引。"""
         if not self.music_files:
             return None
         if self.future_queue:
@@ -237,7 +237,7 @@ class PlaybackMixin:
         return None
 
     def get_prev_index(self):
-        """Return the index of the previous track."""
+        """返回上一首歌曲的索引。"""
         if not self.music_files:
             return None
         mode = self.play_mode.get()
