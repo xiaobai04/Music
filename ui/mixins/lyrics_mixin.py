@@ -1,14 +1,14 @@
-"""Mixin adding lyric display functionality to the UI."""
+"""在界面中显示歌词的混入类。"""
 
 from lyrics.lrc_parser import parse_lrc
 from lyrics.lyrics_display import start_lyrics_display
 
 
 class LyricsMixin:
-    """Mixin for lyrics handling."""
+    """处理歌词相关功能的混入类。"""
 
     def load_and_display_lyrics(self, lrc_path, player):
-        """Parse the lrc file and start the lyrics display."""
+        """解析 lrc 文件并启动歌词显示。"""
         try:
             lyrics = parse_lrc(lrc_path)
             start_lyrics_display(
@@ -21,7 +21,7 @@ class LyricsMixin:
             self.lyrics_box.insert("end", "⚠️ 未找到歌词文件\n")
 
     def increase_font_size(self):
-        """Enlarge the lyric font size by one step."""
+        """增大歌词字体大小。"""
         size = self.lyrics_font_size.get() + 1
         self.lyrics_font_size.set(size)
         self.lyrics_box.configure(font=("Microsoft YaHei", size))
@@ -29,7 +29,7 @@ class LyricsMixin:
         self.persist_settings()
 
     def decrease_font_size(self):
-        """Reduce the lyric font size, keeping a minimum value."""
+        """减小歌词字体大小但不低于最小值。"""
         size = max(8, self.lyrics_font_size.get() - 1)
         self.lyrics_font_size.set(size)
         self.lyrics_box.configure(font=("Microsoft YaHei", size))

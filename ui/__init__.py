@@ -1,2 +1,2 @@
-"""UI package providing the Tkinter based player application."""
+"""提供基于 Tkinter 播放器界面的 UI 包。"""
 

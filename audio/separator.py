@@ -1,4 +1,4 @@
-"""Utilities for separating vocals from accompaniment using Demucs."""
+"""借助 Demucs 模型将歌曲中的人声与伴奏分离的工具函数。"""
 
 import torch
 import torchaudio
@@ -9,7 +9,7 @@ _MODEL_CACHE = {}
 
 
 def _get_model(device: str):
-    """Load Demucs model once per device."""
+    """按设备缓存并返回 Demucs 模型实例。"""
     model = _MODEL_CACHE.get(device)
     if model is None:
         model = get_model(name="htdemucs").to(device)

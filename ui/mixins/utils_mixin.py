@@ -1,4 +1,4 @@
-"""Miscellaneous utility mixin used across the UI components."""
+"""在界面中提供杂项辅助功能的混入类。"""
 
 import os
 import threading
@@ -15,10 +15,10 @@ from utils.settings import save_settings
 
 
 class UtilsMixin:
-    """Mixin with miscellaneous helper methods."""
+    """包含各种辅助方法的混入类。"""
 
     def show_toast(self, message):
-        """Display a short informational message to the user."""
+        """向用户显示简短提示信息。"""
         try:
             from ttkbootstrap.toast import ToastNotification
             toast = ToastNotification(title="提示", message=message, duration=2000, bootstyle="info")
@@ -27,7 +27,7 @@ class UtilsMixin:
             messagebox.showinfo("提示", message)
 
     def change_volume(self, val):
-        """Callback when the vocal volume slider changes."""
+        """人声音量滑块变化时的回调。"""
         if self.player:
             self.player.set_vocal_volume(float(val))
         if hasattr(self, "vocal_label"):
@@ -35,7 +35,7 @@ class UtilsMixin:
         self.persist_settings()
 
     def change_accomp_volume(self, val):
-        """Callback when the accompaniment volume slider changes."""
+        """伴奏音量滑块变化时的回调。"""
         if self.player:
             self.player.set_accomp_volume(float(val))
         if hasattr(self, "accomp_label"):
@@ -43,14 +43,14 @@ class UtilsMixin:
         self.persist_settings()
 
     def change_mic_volume(self, *args):
-        """Update microphone volume from variable trace."""
+        """根据变量变动更新麦克风音量。"""
         if self.player:
             self.player.set_mic_volume(float(self.mic_volume.get()))
         self.persist_settings()
 
 
     def on_mic_device_change(self, *args):
-        """Handle switching the selected microphone device."""
+        """处理麦克风设备切换。"""
         self.persist_settings()
         if self.player and self.mic_enabled.get():
             mic_dev = self.get_selected_mic_index()
@@ -62,7 +62,7 @@ class UtilsMixin:
                 self.mic_enabled.set(False)
 
     def toggle_mic(self, *args):
-        """Enable or disable microphone input based on checkbox."""
+        """根据复选框状态启用或禁用麦克风。"""
         self.persist_settings()
         if self.player:
             if self.mic_enabled.get():
@@ -77,7 +77,7 @@ class UtilsMixin:
                 self.player.set_mic_enabled(False)
 
     def on_output_device_change(self, *args):
-        """Switch the output audio device on user selection."""
+        """切换用户选择的输出设备。"""
         self.persist_settings()
         if self.player:
             out_dev = self.get_selected_output_index()
@@ -88,7 +88,7 @@ class UtilsMixin:
                 messagebox.showerror("输出设备错误", str(e))
 
     def export_vocals(self):
-        """Export the current song's vocals to a file."""
+        """将当前歌曲的人声导出到文件。"""
         if not self.current_audio_data:
             messagebox.showwarning("未播放", "请先播放歌曲再导出")
             return
@@ -101,7 +101,7 @@ class UtilsMixin:
         threading.Thread(target=self.save_audio_file, args=(path, vocals, sr), daemon=True).start()
 
     def export_accompaniment(self):
-        """Export the accompaniment track to a file."""
+        """将伴奏轨道导出到文件。"""
         if not self.current_audio_data:
             messagebox.showwarning("未播放", "请先播放歌曲再导出")
             return
@@ -114,7 +114,7 @@ class UtilsMixin:
         threading.Thread(target=self.save_audio_file, args=(path, accomp, sr), daemon=True).start()
 
     def save_audio_file(self, path, data, sr):
-        """Write a numpy audio array to disk using torchaudio or soundfile."""
+        """使用 torchaudio 或 soundfile 将音频写入磁盘。"""
         error = None
         try:
             tensor = torch.from_numpy(data.T)
@@ -133,7 +133,7 @@ class UtilsMixin:
             messagebox.showerror("导出错误", str(error))
 
     def get_selected_mic_index(self):
-        """Return the index of the currently selected microphone device."""
+        """返回当前选中的麦克风设备索引。"""
         idx = self.input_device_map.get(self.mic_device.get())
         if idx is not None:
             try:
@@ -145,7 +145,7 @@ class UtilsMixin:
         return idx
 
     def get_selected_output_index(self):
-        """Return the index of the chosen output audio device."""
+        """返回选定的输出设备索引。"""
         idx = self.output_device_map.get(self.output_device.get())
         if idx is not None:
             try:
@@ -157,7 +157,7 @@ class UtilsMixin:
         return idx
 
     def persist_settings(self):
-        """Save all current UI settings to disk."""
+        """将当前界面设置保存到磁盘。"""
         settings = {
             "device": self.device_choice.get(),
             "play_mode": self.play_mode.get(),
@@ -177,7 +177,7 @@ class UtilsMixin:
         save_settings(settings)
 
     def on_close(self):
-        """Handle the window closing event and save settings."""
+        """处理窗口关闭事件并保存设置。"""
         self.persist_settings()
         if self.player:
             self.player.stop()
