@@ -2,7 +2,7 @@
 import time
 import threading
 
-def start_lyrics_display(lyrics, player, text_widget=None):
+def start_lyrics_display(lyrics, player, text_widget=None, font_size=14):
     manual_scroll_time = 0
 
     def on_scroll(event=None):
@@ -13,12 +13,6 @@ def start_lyrics_display(lyrics, player, text_widget=None):
         if not text_widget:
             return
         text_widget.see(f"{line_number}.0")
-        text_widget.update_idletasks()
-        total = int(text_widget.index("end-1c").split(".")[0])
-        visible = int(text_widget['height'])
-        first = max(min(line_number - visible // 2, total - visible), 0)
-        fraction = first / max(total - visible, 1)
-        text_widget.yview_moveto(fraction)
 
     def display():
         last_index = -1
@@ -37,7 +31,7 @@ def start_lyrics_display(lyrics, player, text_widget=None):
                 text_widget.tag_add("current", start, end)
                 text_widget.tag_config(
                     "current", foreground="red",
-                    font=("Microsoft YaHei", 14, "bold"))
+                    font=("Microsoft YaHei", font_size, "bold"))
                 if time.time() - manual_scroll_time > 30:
                     center_line(line_number)
                 last_index = idx

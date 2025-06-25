@@ -69,6 +69,7 @@ class PlayerApp:
         self.vocal_volume    = tk.DoubleVar(value=settings.get("vocal_volume", 1.0))
         self.accomp_volume   = tk.DoubleVar(value=settings.get("accomp_volume", 1.0))
         self.mic_enabled     = tk.BooleanVar(value=settings.get("mic_enabled", False))
+        self.lyrics_font_size = tk.IntVar(value=settings.get("lyric_font_size", 14))
         self.update_loop_running = False
         self.dragging            = False
         self.music_files, self.all_music_files = [], []
@@ -379,8 +380,47 @@ class PlayerApp:
         # ---------- 歌词页 ---------- #
         lyric_tab.columnconfigure(0, weight=1)
         lyric_tab.rowconfigure(0,    weight=1)
-        self.lyrics_box = tk.Text(lyric_tab, font=("Microsoft YaHei", 14))
+        self.lyrics_box = tk.Text(lyric_tab, font=("Microsoft YaHei", self.lyrics_font_size.get()))
         self.lyrics_box.grid(row=0, column=0, sticky="nsew", pady=4)
+
+        lyric_progress = ttk.Frame(lyric_tab)
+        lyric_progress.grid(row=1, column=0, sticky="ew", padx=30, pady=6)
+        lyric_progress.columnconfigure(0, weight=1)
+        ttk.Label(lyric_progress, text="播放进度").grid(row=0, column=0, sticky="w")
+        self.progress_bar_lyrics = ttkb.Scale(lyric_progress, from_=0, to=100,
+                                              orient=tk.HORIZONTAL,
+                                              variable=self.progress_var,
+                                              length=400, bootstyle="info")
+        self.progress_bar_lyrics.grid(row=1, column=0, sticky="ew")
+        self.progress_bar_lyrics.bind("<ButtonPress-1>", self.start_drag)
+        self.progress_bar_lyrics.bind("<ButtonRelease-1>", self.on_seek)
+
+        self.time_label_lyrics = ttk.Label(lyric_tab, text="00:00 / 00:00",
+                                           font=("Courier", 12, "bold"))
+        self.time_label_lyrics.grid(row=2, column=0, sticky="e", padx=30)
+
+        lyric_ctrl_row = ttk.Frame(lyric_tab)
+        lyric_ctrl_row.grid(row=3, column=0, pady=(8, 4))
+        self.prev_button_lyrics = ttk.Button(lyric_ctrl_row, text="⏮",
+                                            command=self.play_previous_song,
+                                            bootstyle="secondary", width=3)
+        self.prev_button_lyrics.pack(side=tk.LEFT, padx=5)
+        self.pause_button_lyrics = ttk.Button(lyric_ctrl_row, text="⏯",
+                                             command=self.toggle_pause,
+                                             state=tk.DISABLED,
+                                             bootstyle="warning", width=3)
+        self.pause_button_lyrics.pack(side=tk.LEFT, padx=5)
+        self.next_button_lyrics = ttk.Button(lyric_ctrl_row, text="⏭",
+                                            command=self.play_next_song_manual,
+                                            bootstyle="secondary", width=3)
+        self.next_button_lyrics.pack(side=tk.LEFT, padx=5)
+
+        font_row = ttk.Frame(lyric_tab)
+        font_row.grid(row=4, column=0, pady=(6, 2))
+        ttk.Button(font_row, text="A-", command=self.decrease_font_size,
+                   width=3).pack(side=tk.LEFT, padx=2)
+        ttk.Button(font_row, text="A+", command=self.increase_font_size,
+                   width=3).pack(side=tk.LEFT, padx=2)
 
         # =============== 启动时加载默认文件夹 =============== #
         if self.music_folder and os.path.isdir(self.music_folder):
@@ -571,6 +611,8 @@ class PlayerApp:
             self.current_file_label.config(text=f"当前播放：{song_name}")
             self.lyrics_box.delete("1.0", "end")
             self.pause_button.config(state=tk.NORMAL)
+            if hasattr(self, "pause_button_lyrics"):
+                self.pause_button_lyrics.config(state=tk.NORMAL)
 
             if preloaded:
                 vocals, accomp, sr = preloaded
@@ -620,11 +662,14 @@ class PlayerApp:
             lrc_path = os.path.splitext(self.audio_path)[0] + ".lrc"
             try:
                 lyrics = parse_lrc(lrc_path)
-                start_lyrics_display(lyrics, self.player, self.lyrics_box)
+                start_lyrics_display(lyrics, self.player, self.lyrics_box,
+                                     font_size=self.lyrics_font_size.get())
             except FileNotFoundError:
                 self.lyrics_box.insert("end", "⚠️ 未找到歌词文件\n")
 
             self.progress_bar.config(state=tk.NORMAL)
+            if hasattr(self, "progress_bar_lyrics"):
+                self.progress_bar_lyrics.config(state=tk.NORMAL)
             self.progress_var.set(0)
             if not self.update_loop_running:
                 threading.Thread(target=self.update_progress_loop, daemon=True).start()
@@ -735,11 +780,14 @@ class PlayerApp:
             lrc_path = os.path.splitext(self.audio_path)[0] + ".lrc"
             try:
                 lyrics = parse_lrc(lrc_path)
-                start_lyrics_display(lyrics, self.player, self.lyrics_box)
+                start_lyrics_display(lyrics, self.player, self.lyrics_box,
+                                     font_size=self.lyrics_font_size.get())
             except:
                 self.lyrics_box.insert("end", "⚠️ 无歌词\n")
 
             self.progress_bar.config(state=tk.NORMAL)
+            if hasattr(self, "progress_bar_lyrics"):
+                self.progress_bar_lyrics.config(state=tk.NORMAL)
             self.progress_var.set(0)
             if not self.update_loop_running:
                 threading.Thread(target=self.update_progress_loop, daemon=True).start()
@@ -793,9 +841,13 @@ class PlayerApp:
             if self.player.paused:
                 self.player.resume()
                 self.pause_button.config(text="⏸ 暂停")
+                if hasattr(self, "pause_button_lyrics"):
+                    self.pause_button_lyrics.config(text="⏸ 暂停")
             else:
                 self.player.pause()
                 self.pause_button.config(text="▶ 继续")
+                if hasattr(self, "pause_button_lyrics"):
+                    self.pause_button_lyrics.config(text="▶ 继续")
 
     def seek_relative(self, seconds):
         if self.player:
@@ -838,6 +890,20 @@ class PlayerApp:
     def change_mic_volume(self, *args):
         if self.player:
             self.player.set_mic_volume(float(self.mic_volume.get()))
+        self.persist_settings()
+
+    def increase_font_size(self):
+        size = self.lyrics_font_size.get() + 1
+        self.lyrics_font_size.set(size)
+        self.lyrics_box.configure(font=("Microsoft YaHei", size))
+        self.lyrics_box.tag_config("current", font=("Microsoft YaHei", size, "bold"))
+        self.persist_settings()
+
+    def decrease_font_size(self):
+        size = max(8, self.lyrics_font_size.get() - 1)
+        self.lyrics_font_size.set(size)
+        self.lyrics_box.configure(font=("Microsoft YaHei", size))
+        self.lyrics_box.tag_config("current", font=("Microsoft YaHei", size, "bold"))
         self.persist_settings()
 
     def on_mic_device_change(self, *args):
@@ -886,6 +952,8 @@ class PlayerApp:
             if not self.dragging:
                 self.progress_var.set(self.player.get_progress() * 100)
             self.time_label.config(text=f"{self.format_time(current)} / {self.format_time(total)}")
+            if hasattr(self, "time_label_lyrics"):
+                self.time_label_lyrics.config(text=f"{self.format_time(current)} / {self.format_time(total)}")
             time.sleep(0.2)
         self.update_loop_running = False
 
@@ -990,6 +1058,7 @@ class PlayerApp:
             "mic_enabled": self.mic_enabled.get(),
             "vocal_volume": self.vocal_volume.get(),
             "accomp_volume": self.accomp_volume.get(),
+            "lyric_font_size": self.lyrics_font_size.get(),
             "queue": self.future_queue,
             "history": self.play_history,
             "theme": self.theme_choice.get(),

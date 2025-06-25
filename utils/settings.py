@@ -15,6 +15,7 @@ DEFAULT_SETTINGS = {
     "mic_enabled": False,
     "vocal_volume": 1.0,
     "accomp_volume": 1.0,
+    "lyric_font_size": 14,
     "queue": [],
     "history": [],
     "theme": "flatly",
