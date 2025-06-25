@@ -1,5 +1,4 @@
-# 文件：audio/separator.py
-# 纯内存人声分离（使用 Demucs 模型）
+"""Utilities for separating vocals from accompaniment using Demucs."""
 
 import torch
 import torchaudio

@@ -1,8 +1,10 @@
-# 文件：lyrics/lyrics_display.py
+"""Display scrolling lyrics synchronized with the AudioPlayer."""
+
 import time
 import threading
 
 def start_lyrics_display(lyrics, player, text_widget=None, font_size=14):
+    """Launch a background thread to update the lyric text widget."""
     manual_scroll_time = 0
 
     def on_scroll(event=None):

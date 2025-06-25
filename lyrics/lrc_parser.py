@@ -1,4 +1,6 @@
 # lyrics/lrc_parser.py
+"""Parse LRC lyric files into time/text pairs."""
+
 import re
 
 def parse_lrc(file_path):

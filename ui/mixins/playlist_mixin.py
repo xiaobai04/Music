@@ -1,3 +1,5 @@
+"""Playlist management mixin handling music selection and queue."""
+
 import os
 import tkinter as tk
 from tkinter import filedialog
@@ -9,12 +11,14 @@ class PlaylistMixin:
     """Mixin providing playlist and queue management methods."""
 
     def choose_folder(self):
+        """Prompt the user to select a music folder and load it."""
         folder = filedialog.askdirectory()
         if folder:
             self.load_folder(folder)
             self.persist_settings()
 
     def load_folder(self, folder):
+        """Load all supported music files from the given folder."""
         self.music_folder = folder
         self.all_music_files = [
             os.path.join(folder, f)
@@ -28,11 +32,13 @@ class PlaylistMixin:
         self.update_queue_listbox()
 
     def refresh_file_listbox(self):
+        """Refresh the listbox displaying available songs."""
         self.file_listbox.delete(0, tk.END)
         for f in self.music_files:
             self.file_listbox.insert(tk.END, os.path.basename(f))
 
     def update_queue_listbox(self):
+        """Redraw the queue list to match the current state."""
         for child in self.queue_list_frame.winfo_children():
             child.destroy()
         if not self.future_queue:
@@ -58,12 +64,14 @@ class PlaylistMixin:
                 ).pack(side=tk.RIGHT)
 
     def clear_queue(self):
+        """Remove all songs from the upcoming queue."""
         if self.future_queue:
             self.future_queue.clear()
             self.update_queue_listbox()
             self.persist_settings()
 
     def remove_from_queue(self, index):
+        """Remove the song at the specified queue index."""
         if 0 <= index < len(self.future_queue):
             removed = self.future_queue.pop(index)
             self.lyrics_box.insert(
@@ -73,6 +81,7 @@ class PlaylistMixin:
             self.persist_settings()
 
     def toggle_queue(self):
+        """Show or hide the upcoming queue panel."""
         if self.queue_visible:
             self.queue_content.grid_remove()
             self.queue_visible = False
@@ -84,6 +93,7 @@ class PlaylistMixin:
 
 
     def on_song_double_click(self, event):
+        """Handle double clicking on a song in the listbox."""
         index = self.file_listbox.curselection()
         if not index:
             return
@@ -97,6 +107,7 @@ class PlaylistMixin:
         ).start()
 
     def add_to_queue(self):
+        """Add the currently selected song to the queue."""
         index = self.file_listbox.curselection()
         if not index:
             return
