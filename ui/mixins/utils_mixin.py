@@ -1,3 +1,5 @@
+"""Miscellaneous utility mixin used across the UI components."""
+
 import os
 import threading
 from tkinter import filedialog, messagebox
@@ -16,6 +18,7 @@ class UtilsMixin:
     """Mixin with miscellaneous helper methods."""
 
     def show_toast(self, message):
+        """Display a short informational message to the user."""
         try:
             from ttkbootstrap.toast import ToastNotification
             toast = ToastNotification(title="提示", message=message, duration=2000, bootstyle="info")
@@ -24,6 +27,7 @@ class UtilsMixin:
             messagebox.showinfo("提示", message)
 
     def change_volume(self, val):
+        """Callback when the vocal volume slider changes."""
         if self.player:
             self.player.set_vocal_volume(float(val))
         if hasattr(self, "vocal_label"):
@@ -31,6 +35,7 @@ class UtilsMixin:
         self.persist_settings()
 
     def change_accomp_volume(self, val):
+        """Callback when the accompaniment volume slider changes."""
         if self.player:
             self.player.set_accomp_volume(float(val))
         if hasattr(self, "accomp_label"):
@@ -38,12 +43,14 @@ class UtilsMixin:
         self.persist_settings()
 
     def change_mic_volume(self, *args):
+        """Update microphone volume from variable trace."""
         if self.player:
             self.player.set_mic_volume(float(self.mic_volume.get()))
         self.persist_settings()
 
 
     def on_mic_device_change(self, *args):
+        """Handle switching the selected microphone device."""
         self.persist_settings()
         if self.player and self.mic_enabled.get():
             mic_dev = self.get_selected_mic_index()
@@ -55,6 +62,7 @@ class UtilsMixin:
                 self.mic_enabled.set(False)
 
     def toggle_mic(self, *args):
+        """Enable or disable microphone input based on checkbox."""
         self.persist_settings()
         if self.player:
             if self.mic_enabled.get():
@@ -69,6 +77,7 @@ class UtilsMixin:
                 self.player.set_mic_enabled(False)
 
     def on_output_device_change(self, *args):
+        """Switch the output audio device on user selection."""
         self.persist_settings()
         if self.player:
             out_dev = self.get_selected_output_index()
@@ -79,6 +88,7 @@ class UtilsMixin:
                 messagebox.showerror("输出设备错误", str(e))
 
     def export_vocals(self):
+        """Export the current song's vocals to a file."""
         if not self.current_audio_data:
             messagebox.showwarning("未播放", "请先播放歌曲再导出")
             return
@@ -91,6 +101,7 @@ class UtilsMixin:
         threading.Thread(target=self.save_audio_file, args=(path, vocals, sr), daemon=True).start()
 
     def export_accompaniment(self):
+        """Export the accompaniment track to a file."""
         if not self.current_audio_data:
             messagebox.showwarning("未播放", "请先播放歌曲再导出")
             return
@@ -103,6 +114,7 @@ class UtilsMixin:
         threading.Thread(target=self.save_audio_file, args=(path, accomp, sr), daemon=True).start()
 
     def save_audio_file(self, path, data, sr):
+        """Write a numpy audio array to disk using torchaudio or soundfile."""
         error = None
         try:
             tensor = torch.from_numpy(data.T)
@@ -121,6 +133,7 @@ class UtilsMixin:
             messagebox.showerror("导出错误", str(error))
 
     def get_selected_mic_index(self):
+        """Return the index of the currently selected microphone device."""
         idx = self.input_device_map.get(self.mic_device.get())
         if idx is not None:
             try:
@@ -132,6 +145,7 @@ class UtilsMixin:
         return idx
 
     def get_selected_output_index(self):
+        """Return the index of the chosen output audio device."""
         idx = self.output_device_map.get(self.output_device.get())
         if idx is not None:
             try:
@@ -143,6 +157,7 @@ class UtilsMixin:
         return idx
 
     def persist_settings(self):
+        """Save all current UI settings to disk."""
         settings = {
             "device": self.device_choice.get(),
             "play_mode": self.play_mode.get(),
@@ -162,6 +177,7 @@ class UtilsMixin:
         save_settings(settings)
 
     def on_close(self):
+        """Handle the window closing event and save settings."""
         self.persist_settings()
         if self.player:
             self.player.stop()

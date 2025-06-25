@@ -1,9 +1,13 @@
+"""Entry point for launching the Tkinter based music player."""
+
 import os
 from ui.tkinter_ui import PlayerApp
 import ttkbootstrap as ttkb
 from utils.settings import load_settings
 
+# Only execute the GUI when running this file directly
 if __name__ == "__main__":
+    # Load previously saved theme information
     settings = load_settings()
     theme = settings.get("theme", "flatly")
 

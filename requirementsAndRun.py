@@ -1,10 +1,12 @@
-# check_requirements_and_run.py
+"""Utility for installing requirements before launching the application."""
+
 import subprocess
 import pkg_resources
 import sys
 import os
 
 def install_missing_packages(requirements_file: str):
+    """Install any Python packages listed in the requirements file."""
     # 解析 requirements.txt
     with open(requirements_file, "r", encoding="utf-8") as f:
         required = list(pkg_resources.parse_requirements(f))
@@ -23,6 +25,7 @@ def install_missing_packages(requirements_file: str):
     else:
         print("所有依赖已安装。")
 
+# Execute installation when this script is run directly
 if __name__ == "__main__":
     req_file = "requirements.txt"
     if not os.path.exists(req_file):

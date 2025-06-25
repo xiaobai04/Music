@@ -1,3 +1,5 @@
+"""Helper functions for basic audio processing."""
+
 import numpy as np
 import torch
 import torchaudio.functional as F

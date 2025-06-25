@@ -1,3 +1,5 @@
+"""Tkinter user interface for the Demucs based music player."""
+
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import ttkbootstrap as ttkb
@@ -29,7 +31,10 @@ class PlayerApp(
     SearchMixin,
     UtilsMixin,
 ):
+    """Main application window composed of multiple mixins."""
+
     def __init__(self, root):
+        """Construct all widgets and initialize state."""
         # ================= 基础初始化 ================= #
         self.root = root
         self.root.title("🎵 人声分离播放器")

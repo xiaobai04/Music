@@ -1,4 +1,4 @@
-# 文件：audio/player.py
+"""Simple audio playback engine supporting microphone mixing."""
 import sounddevice as sd
 import numpy as np
 import threading
@@ -6,7 +6,10 @@ import collections
 from utils.audio_utils import resample_audio
 
 class AudioPlayer:
+    """Play separated vocals and accompaniment with optional mic input."""
+
     def __init__(self, vocals, accomp, sample_rate, output_device=None, mic_device=None, mic_enabled=False, latency=0.05):
+        """Initialize the player with audio buffers and device settings."""
         self.vocals = vocals
         self.accomp = accomp
         self.mic_input_sr = sample_rate
@@ -33,6 +36,7 @@ class AudioPlayer:
         self.lock = threading.RLock()
 
     def _mic_callback(self, indata, frames, time, status):
+        """Handle incoming microphone audio and queue it for mixing."""
         with self.lock:
             data = indata.copy()
             if self.mic_input_sr != self.sample_rate:
@@ -46,6 +50,7 @@ class AudioPlayer:
                 self.mic_queue.popleft()
 
     def _callback(self, outdata, frames, time, status):
+        """Main playback callback mixing vocals, accompaniment and mic."""
         with self.lock:
             if not self.playing or self.paused:
                 outdata[:] = np.zeros((frames, self.channels), dtype='float32')
@@ -76,6 +81,7 @@ class AudioPlayer:
             self.position = end
 
     def play(self):
+        """Start playback from the beginning."""
         if self.playing:
             return
         self.playing = True
@@ -152,14 +158,17 @@ class AudioPlayer:
                 raise
 
     def pause(self):
+        """Pause playback without resetting position."""
         with self.lock:
             self.paused = True
 
     def resume(self):
+        """Resume playback if currently paused."""
         with self.lock:
             self.paused = False
 
     def stop(self):
+        """Stop all streams and reset state."""
         self.playing = False
         self.paused = False
         if self.stream:
@@ -180,18 +189,22 @@ class AudioPlayer:
             self.stop_mic()
 
     def set_vocal_volume(self, vol):
+        """Adjust the playback volume of the vocal track."""
         with self.lock:
             self.vocal_volume = float(vol)
 
     def set_accomp_volume(self, vol):
+        """Adjust the volume of the accompaniment track."""
         with self.lock:
             self.accomp_volume = float(vol)
 
     def set_mic_volume(self, vol):
+        """Adjust microphone mixing volume."""
         with self.lock:
             self.mic_volume = float(vol)
 
     def change_output_device(self, device):
+        """Switch to a different output audio device."""
         with self.lock:
             self.output_device = device
             if self.stream:
@@ -216,6 +229,7 @@ class AudioPlayer:
                     raise
 
     def start_mic(self, device=None):
+        """Begin capturing audio from the specified microphone device."""
         with self.lock:
             if device is not None:
                 self.mic_device = device
@@ -249,6 +263,7 @@ class AudioPlayer:
                 raise
 
     def stop_mic(self):
+        """Stop microphone capture and clear any buffered audio."""
         with self.lock:
             if self.mic_stream:
                 self.mic_stream.stop()
@@ -257,6 +272,7 @@ class AudioPlayer:
                 self.mic_queue.clear()
 
     def set_mic_enabled(self, enabled, device=None):
+        """Enable or disable microphone capture."""
         with self.lock:
             self.mic_enabled = bool(enabled)
             if self.mic_enabled:
@@ -265,11 +281,14 @@ class AudioPlayer:
                 self.stop_mic()
 
     def get_progress(self):
+        """Return playback progress as a value between 0 and 1."""
         return self.position / self.num_frames if self.num_frames else 0.0
 
     def get_current_time(self):
+        """Return the current playback position in seconds."""
         return self.position / self.sample_rate
     
     def seek_to(self, percent):
+        """Jump to the given position (as a percentage of the track)."""
         with self.lock:
             self.position = int(self.num_frames * percent)

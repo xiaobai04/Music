@@ -1,3 +1,5 @@
+"""Load and save persistent user settings for the player."""
+
 import json
 import os
 import sys
@@ -23,6 +25,7 @@ DEFAULT_SETTINGS = {
 }
 
 def load_settings():
+    """Read settings from disk merging with defaults."""
     if os.path.exists(SETTINGS_FILE):
         try:
             with open(SETTINGS_FILE, 'r', encoding='utf-8') as f:
@@ -33,6 +36,7 @@ def load_settings():
     return DEFAULT_SETTINGS.copy()
 
 def save_settings(settings):
+    """Persist the given settings dictionary to disk."""
     try:
         with open(SETTINGS_FILE, 'w', encoding='utf-8') as f:
             json.dump(settings, f, ensure_ascii=False, indent=2)

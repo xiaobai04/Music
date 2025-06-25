@@ -1,3 +1,5 @@
+"""Mixin adding lyric display functionality to the UI."""
+
 from lyrics.lrc_parser import parse_lrc
 from lyrics.lyrics_display import start_lyrics_display
 
@@ -19,6 +21,7 @@ class LyricsMixin:
             self.lyrics_box.insert("end", "⚠️ 未找到歌词文件\n")
 
     def increase_font_size(self):
+        """Enlarge the lyric font size by one step."""
         size = self.lyrics_font_size.get() + 1
         self.lyrics_font_size.set(size)
         self.lyrics_box.configure(font=("Microsoft YaHei", size))
@@ -26,6 +29,7 @@ class LyricsMixin:
         self.persist_settings()
 
     def decrease_font_size(self):
+        """Reduce the lyric font size, keeping a minimum value."""
         size = max(8, self.lyrics_font_size.get() - 1)
         self.lyrics_font_size.set(size)
         self.lyrics_box.configure(font=("Microsoft YaHei", size))
