@@ -1,7 +1,0 @@
-torch
-torchaudio
-demucs
-sounddevice
-numpy
-soundfile
-ttkbootstrap
